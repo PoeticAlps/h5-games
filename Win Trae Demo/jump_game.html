@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>跳一跳</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-color: #87ceeb;
+        }
+        
+        /* Main Menu */
+        .main-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .main-menu h1 {
+            font-size: 48px;
+            color: #ffffff;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .menu-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .menu-button:hover {
+            background-color: #45a049;
+        }
+        
+        .high-score {
+            margin-top: 30px;
+            color: #ffffff;
+            font-size: 18px;
+        }
+        
+        /* Game Canvas */
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* UI Elements */
+        .ui {
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        /* Score Display */
+        .score-display {
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Power Bar */
+        .power-bar {
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 20px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .power-fill {
+            height: 100%;
+            background-color: #ff6b6b;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        /* Game Over Screen */
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            display: none;
+        }
+        
+        .game-over h2 {
+            font-size: 36px;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+        
+        .final-score {
+            font-size: 24px;
+            color: #ffffff;
+            margin-bottom: 30px;
+        }
+        
+        .restart-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            pointer-events: all;
+        }
+        
+        .restart-button:hover {
+            background-color: #45a049;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-menu h1 {
+                font-size: 36px;
+            }
+            
+            .menu-button {
+                padding: 12px 24px;
+                font-size: 16px;
+            }
+            
+            .score-display {
+                font-size: 20px;
+            }
+            
+            .power-bar {
+                width: 150px;
+                height: 15px;
+            }
+            
+            .game-over h2 {
+                font-size: 28px;
+            }
+            
+            .final-score {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Main Menu -->
+        <div class="main-menu" id="main-menu">
+            <h1>跳一跳</h1>
+            <div class="menu-buttons">
+                <button class="menu-button" id="play-button">开始游戏</button>
+                <button class="menu-button" id="settings-button">设置</button>
+                <button class="menu-button" id="quit-button">退出</button>
+            </div>
+            <div class="high-score">
+                最高分: <span id="high-score-value">0</span>
+            </div>
+        </div>
+        
+        <!-- Game Canvas -->
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- UI Elements -->
+        <div class="ui score-display" id="score-display">
+            分数: <span id="score-value">0</span>
+        </div>
+        
+        <div class="ui power-bar">
+            <div class="power-fill" id="power-fill"></div>
+        </div>
+        
+        <!-- Game Over Screen -->
+        <div class="game-over" id="game-over">
+            <h2>游戏结束</h2>
+            <div class="final-score">
+                最终分数: <span id="final-score-value">0</span>
+            </div>
+            <button class="restart-button" id="restart-button">重新开始</button>
+        </div>
+    </div>
+    
+    <script>
+        // Game constants
+        const GAME_CONSTANTS = {
+            GRAVITY: 0.5,
+            JUMP_POWER_MULTIPLIER: 0.5,
+            PLAYER_SIZE: 30,
+            PLATFORM_WIDTH: 80,
+            PLATFORM_HEIGHT: 20,
+            PLATFORM_SPEED: 2,
+            MIN_PLATFORM_DISTANCE: 100,
+            MAX_PLATFORM_DISTANCE: 200,
+            POWER_BAR_MAX: 100,
+            POWER_BAR_SPEED: 5
+        };
+        
+        // Game state
+        let gameState = {
+            running: false,
+            score: 0,
+            highScore: 0,
+            power: 0,
+            powerDirection: 1,
+            gameOver: false
+        };
+        
+        // Player object
+        let player = {
+            x: 100,
+            y: 0,
+            width: GAME_CONSTANTS.PLAYER_SIZE,
+            height: GAME_CONSTANTS.PLAYER_SIZE,
+            velocity: { x: 0, y: 0 },
+            onGround: true,
+            jumping: false
+        };
+        
+        // Platforms array
+        let platforms = [];
+        
+        // Canvas and context
+        let canvas, ctx;
+        let canvasWidth, canvasHeight;
+        
+        // Touch/mouse state
+        let isTouching = false;
+        let touchStartTime = 0;
+        
+        // Sound effects
+        let sounds = {
+            jump: null,
+            land: null,
+            gameOver: null
+        };
+        
+        // Initialize game
+        function initGame() {
+            // Get canvas and context
+            canvas = document.getElementById('game-canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Load high score
+            loadHighScore();
+            
+            // Load sounds
+            loadSounds();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Create initial platforms
+            createInitialPlatforms();
+            
+            // Start game loop
+            gameLoop();
+        }
+        
+        // Resize canvas
+        function resizeCanvas() {
+            canvasWidth = canvas.width = window.innerWidth;
+            canvasHeight = canvas.height = window.innerHeight;
+        }
+        
+        // Load high score
+        function loadHighScore() {
+            gameState.highScore = parseInt(localStorage.getItem('jumpGameHighScore')) || 0;
+            document.getElementById('high-score-value').textContent = gameState.highScore;
+        }
+        
+        // Save high score
+        function saveHighScore() {
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+                localStorage.setItem('jumpGameHighScore', gameState.highScore);
+                document.getElementById('high-score-value').textContent = gameState.highScore;
+            }
+        }
+        
+        // Load sounds
+        function loadSounds() {
+            // In a real game, you would load actual sound files
+            // For this demo, we'll simulate sound effects
+            sounds.jump = { play: () => console.log('Jump sound') };
+            sounds.land = { play: () => console.log('Land sound') };
+            sounds.gameOver = { play: () => console.log('Game over sound') };
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Play button
+            document.getElementById('play-button').addEventListener('click', startGame);
+            
+            // Restart button
+            document.getElementById('restart-button').addEventListener('click', restartGame);
+            
+            // Touch/mouse events
+            canvas.addEventListener('mousedown', startJump);
+            canvas.addEventListener('mouseup', endJump);
+            canvas.addEventListener('touchstart', startJump);
+            canvas.addEventListener('touchend', endJump);
+        }
+        
+        // Create initial platforms
+        function createInitialPlatforms() {
+            platforms = [];
+            
+            // First platform
+            platforms.push({
+                x: 50,
+                y: canvasHeight - 100,
+                width: GAME_CONSTANTS.PLATFORM_WIDTH,
+                height: GAME_CONSTANTS.PLATFORM_HEIGHT,
+                color: '#4CAF50'
+            });
+            
+            // Generate additional platforms
+            for (let i = 0; i < 5; i++) {
+                addPlatform();
+            }
+        }
+        
+        // Add a new platform
+        function addPlatform() {
+            const lastPlatform = platforms[platforms.length - 1];
+            const distance = Math.random() * (GAME_CONSTANTS.MAX_PLATFORM_DISTANCE - GAME_CONSTANTS.MIN_PLATFORM_DISTANCE) + GAME_CONSTANTS.MIN_PLATFORM_DISTANCE;
+            const x = lastPlatform.x + lastPlatform.width + distance;
+            const y = canvasHeight - (Math.random() * 200 + 100);
+            
+            platforms.push({
+                x: x,
+                y: y,
+                width: GAME_CONSTANTS.PLATFORM_WIDTH,
+                height: GAME_CONSTANTS.PLATFORM_HEIGHT,
+                color: `hsl(${Math.random() * 360}, 70%, 50%)`
+            });
+        }
+        
+        // Start game
+        function startGame() {
+            document.getElementById('main-menu').style.display = 'none';
+            gameState.running = true;
+            gameState.score = 0;
+            gameState.gameOver = false;
+            
+            // Reset player position
+            player.x = 100;
+            player.y = platforms[0].y - player.height;
+            player.velocity = { x: 0, y: 0 };
+            player.onGround = true;
+            player.jumping = false;
+            
+            // Reset platforms
+            createInitialPlatforms();
+            
+            // Update score display
+            document.getElementById('score-value').textContent = gameState.score;
+        }
+        
+        // Restart game
+        function restartGame() {
+            document.getElementById('game-over').style.display = 'none';
+            startGame();
+        }
+        
+        // Start jump
+        function startJump(e) {
+            if (!gameState.running || player.jumping) return;
+            
+            isTouching = true;
+            touchStartTime = Date.now();
+            gameState.power = 0;
+            gameState.powerDirection = 1;
+        }
+        
+        // End jump
+        function endJump(e) {
+            if (!isTouching || !gameState.running || player.jumping) return;
+            
+            isTouching = false;
+            
+            // Calculate jump power
+            const jumpPower = gameState.power * GAME_CONSTANTS.JUMP_POWER_MULTIPLIER;
+            
+            // Apply jump velocity
+            player.velocity.x = jumpPower;
+            player.velocity.y = -Math.sqrt(jumpPower * 10);
+            player.jumping = true;
+            player.onGround = false;
+            
+            // Play jump sound
+            sounds.jump.play();
+        }
+        
+        // Update game state
+        function update() {
+            if (!gameState.running) return;
+            
+            // Update power bar if touching
+            if (isTouching) {
+                gameState.power += gameState.powerDirection * GAME_CONSTANTS.POWER_BAR_SPEED;
+                
+                if (gameState.power >= GAME_CONSTANTS.POWER_BAR_MAX) {
+                    gameState.powerDirection = -1;
+                } else if (gameState.power <= 0) {
+                    gameState.powerDirection = 1;
+                }
+                
+                // Update power bar display
+                document.getElementById('power-fill').style.width = `${gameState.power}%`;
+            }
+            
+            // Update player position
+            player.x += player.velocity.x;
+            player.y += player.velocity.y;
+            
+            // Apply gravity
+            player.velocity.y += GAME_CONSTANTS.GRAVITY;
+            
+            // Check collision with platforms
+            let onPlatform = false;
+            for (const platform of platforms) {
+                if (
+                    player.x + player.width > platform.x &&
+                    player.x < platform.x + platform.width &&
+                    player.y + player.height > platform.y &&
+                    player.y + player.height < platform.y + platform.height &&
+                    player.velocity.y > 0
+                ) {
+                    player.y = platform.y - player.height;
+                    player.velocity.y = 0;
+                    player.onGround = true;
+                    player.jumping = false;
+                    onPlatform = true;
+                    
+                    // Play land sound
+                    sounds.land.play();
+                    
+                    // Increase score
+                    gameState.score++;
+                    document.getElementById('score-value').textContent = gameState.score;
+                    
+                    // Add new platform
+                    addPlatform();
+                    break;
+                }
+            }
+            
+            // Check if player fell off
+            if (!onPlatform && player.y > canvasHeight) {
+                gameOver();
+            }
+            
+            // Move platforms to the left
+            for (const platform of platforms) {
+                platform.x -= GAME_CONSTANTS.PLATFORM_SPEED;
+            }
+            
+            // Remove off-screen platforms
+            platforms = platforms.filter(platform => platform.x + platform.width > 0);
+        }
+        
+        // Game over
+        function gameOver() {
+            gameState.running = false;
+            gameState.gameOver = true;
+            
+            // Play game over sound
+            sounds.gameOver.play();
+            
+            // Save high score
+            saveHighScore();
+            
+            // Show game over screen
+            document.getElementById('final-score-value').textContent = gameState.score;
+            document.getElementById('game-over').style.display = 'flex';
+        }
+        
+        // Draw game
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            // Draw sky gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+            skyGradient.addColorStop(0, '#87ceeb');
+            skyGradient.addColorStop(1, '#b0e0e6');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            
+            // Draw platforms
+            for (const platform of platforms) {
+                ctx.fillStyle = platform.color;
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                
+                // Draw platform shadow
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(platform.x + 5, platform.y + 5, platform.width, platform.height);
+            }
+            
+            // Draw player
+            ctx.fillStyle = '#ff6b6b';
+            ctx.beginPath();
+            ctx.arc(player.x + player.width / 2, player.y + player.height / 2, player.width / 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw player eyes
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(player.x + player.width * 0.3, player.y + player.height * 0.3, player.width * 0.1, 0, Math.PI * 2);
+            ctx.arc(player.x + player.width * 0.7, player.y + player.height * 0.3, player.width * 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(player.x + player.width * 0.3, player.y + player.height * 0.3, player.width * 0.05, 0, Math.PI * 2);
+            ctx.arc(player.x + player.width * 0.7, player.y + player.height * 0.3, player.width * 0.05, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Initialize game when DOM is loaded
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
