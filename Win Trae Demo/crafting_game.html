@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元素合成游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .game-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .game-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .main-game {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .crafting-area {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .crafting-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .crafting-slot {
+            width: 80px;
+            height: 80px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .crafting-slot:hover {
+            border-color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        .crafting-slot.active {
+            border-color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.2);
+        }
+        
+        .item {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .item:active {
+            cursor: grabbing;
+        }
+        
+        .item-name {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .item:hover .item-name {
+            opacity: 1;
+        }
+        
+        .result-area {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .result-slot {
+            width: 120px;
+            height: 120px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            background-color: #f8f8f8;
+        }
+        
+        .result-item {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background-color: #666;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #555;
+            transform: translateY(-2px);
+        }
+        
+        .inventory-area {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .inventory-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .inventory-slot {
+            width: 70px;
+            height: 70px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .discovery-panel {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        
+        .discovery-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .discovery-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .discovery-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .discovery-item:last-child {
+            border-bottom: none;
+        }
+        
+        .discovery-item.new {
+            background-color: rgba(76, 175, 80, 0.1);
+            animation: pulse 2s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% {
+                background-color: rgba(76, 175, 80, 0.3);
+            }
+            100% {
+                background-color: rgba(76, 175, 80, 0.1);
+            }
+        }
+        
+        .encyclopedia {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        
+        .encyclopedia-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .encyclopedia-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+        }
+        
+        .encyclopedia-item {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .encyclopedia-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .encyclopedia-item.discovered {
+            background-color: #f8f8f8;
+        }
+        
+        .encyclopedia-item.undiscovered {
+            background-color: #e0e0e0;
+            filter: grayscale(100%);
+        }
+        
+        .encyclopedia-item-icon {
+            font-size: 30px;
+            margin-bottom: 5px;
+        }
+        
+        .encyclopedia-item-name {
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .modal p {
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .tutorial-step {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .tutorial-step h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-game {
+                grid-template-columns: 1fr;
+            }
+            
+            .crafting-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .inventory-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>元素合成游戏</h1>
+            <div class="game-stats">
+                <div>已发现物品: <span id="discoveredCount">0</span>/70</div>
+                <div>合成次数: <span id="craftCount">0</span></div>
+                <div>成就: <span id="achievementCount">0</span>/10</div>
+            </div>
+        </header>
+        
+        <div class="main-game">
+            <div class="crafting-area">
+                <h2>合成区域</h2>
+                <div class="crafting-grid">
+                    <div class="crafting-slot" data-slot="1"></div>
+                    <div class="crafting-slot" data-slot="2"></div>
+                    <div class="crafting-slot" data-slot="3"></div>
+                    <div class="crafting-slot" data-slot="4" id="storageBag">
+                        <div class="item" style="background-color: #8B4513; cursor: pointer;">
+                            🎒
+                            <div class="item-name">储物袋</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-area">
+                    <h3>合成结果</h3>
+                    <div class="result-slot" id="resultSlot"></div>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="craftBtn">合成</button>
+                        <button class="btn btn-secondary" id="clearBtn">清空</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="inventory-area">
+                    <h2 class="inventory-title">物品栏</h2>
+                    <div class="inventory-grid" id="inventoryGrid"></div>
+                </div>
+                
+                <div class="discovery-panel">
+                    <h2 class="discovery-title">最近发现</h2>
+                    <div class="discovery-list" id="discoveryList"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="encyclopedia">
+            <h2 class="encyclopedia-title">物品图鉴</h2>
+            <div class="encyclopedia-grid" id="encyclopediaGrid"></div>
+        </div>
+    </div>
+    
+    <!-- 教程模态框 -->
+    <div class="modal" id="tutorialModal">
+        <div class="modal-content">
+            <h2>游戏教程</h2>
+            <div class="tutorial-step">
+                <h3>1. 基本操作</h3>
+                <p>将物品从物品栏拖拽到合成区域的插槽中，然后点击"合成"按钮尝试合成新物品。</p>
+            </div>
+            <div class="tutorial-step">
+                <h3>2. 物品合成</h3>
+                <p>不同的物品组合会产生不同的结果。尝试不同的组合来发现新物品！</p>
+            </div>
+            <div class="tutorial-step">
+                <h3>3. 物品图鉴</h3>
+                <p>查看物品图鉴了解已发现的物品和它们的合成配方。</p>
+            </div>
+            <div class="tutorial-step">
+                <h3>4. 成就系统</h3>
+                <p>完成特定的合成目标可以解锁成就。</p>
+            </div>
+            <button class="btn btn-primary" id="startGameBtn">开始游戏</button>
+        </div>
+    </div>
+    
+    <!-- 物品详情模态框 -->
+    <div class="modal" id="itemModal">
+        <div class="modal-content">
+            <h2 id="itemModalTitle">物品详情</h2>
+            <div style="font-size: 60px; margin: 20px 0;"></div>
+            <p id="itemModalDesc"></p>
+            <p id="itemModalRecipe"></p>
+            <button class="btn btn-primary" id="closeItemModalBtn">关闭</button>
+        </div>
+    </div>
+    
+    <!-- 成就模态框 -->
+    <div class="modal" id="achievementModal">
+        <div class="modal-content">
+            <h2>恭喜！</h2>
+            <p id="achievementMessage"></p>
+            <button class="btn btn-primary" id="closeAchievementModalBtn">确定</button>
+        </div>
+    </div>
+    
+    <script>
+        // 游戏数据
+        const gameData = {
+            // 物品定义
+            items: {
+                // 基础物品 (20个)
+                "earth": { name: "土", icon: "🌍", category: "基础", discovered: true },
+                "water": { name: "水", icon: "💧", category: "基础", discovered: true },
+                "fire": { name: "火", icon: "🔥", category: "基础", discovered: true },
+                "air": { name: "气", icon: "💨", category: "基础", discovered: true },
+                "metal": { name: "金属", icon: "🔩", category: "基础", discovered: true },
+                "wood": { name: "木", icon: "🌲", category: "基础", discovered: true },
+                "stone": { name: "石头", icon: "🪨", category: "基础", discovered: true },
+                "sand": { name: "沙子", icon: "🏖️", category: "基础", discovered: true },
+                "salt": { name: "盐", icon: "🧂", category: "基础", discovered: true },
+                "sugar": { name: "糖", icon: "🍬", category: "基础", discovered: true },
+                "seed": { name: "种子", icon: "🌱", category: "基础", discovered: true },
+                "egg": { name: "蛋", icon: "🥚", category: "基础", discovered: true },
+                "milk": { name: "牛奶", icon: "🥛", category: "基础", discovered: true },
+                "wheat": { name: "小麦", icon: "🌾", category: "基础", discovered: true },
+                "fruit": { name: "水果", icon: "🍎", category: "基础", discovered: true },
+                "vegetable": { name: "蔬菜", icon: "🥬", category: "基础", discovered: true },
+                "meat": { name: "肉", icon: "🥩", category: "基础", discovered: true },
+                "fish": { name: "鱼", icon: "🐟", category: "基础", discovered: true },
+                "herb": { name: "草药", icon: "🌿", category: "基础", discovered: true },
+                "mushroom": { name: "蘑菇", icon: "🍄", category: "基础", discovered: true },
+                
+                // 可合成物品 (50个)
+                "mud": { name: "泥", icon: "🟤", category: "合成", discovered: false, recipe: ["earth", "water"] },
+                "clay": { name: "黏土", icon: "🏺", category: "合成", discovered: false, recipe: ["mud", "water"] },
+                "brick": { name: "砖块", icon: "🧱", category: "合成", discovered: false, recipe: ["clay", "fire"] },
+                "glass": { name: "玻璃", icon: "🔍", category: "合成", discovered: false, recipe: ["sand", "fire"] },
+                "metal_ingot": { name: "金属锭", icon: "⚙️", category: "合成", discovered: false, recipe: ["metal", "fire"] },
+                "wooden_plank": { name: "木板", icon: "🪵", category: "合成", discovered: false, recipe: ["wood", "wood"] },
+                "paper": { name: "纸", icon: "📄", category: "合成", discovered: false, recipe: ["wood", "water"] },
+                "bread": { name: "面包", icon: "🍞", category: "合成", discovered: false, recipe: ["wheat", "fire"] },
+                "cake": { name: "蛋糕", icon: "🍰", category: "合成", discovered: false, recipe: ["bread", "sugar"] },
+                "soup": { name: "汤", icon: "🍲", category: "合成", discovered: false, recipe: ["water", "vegetable"] },
+                "stew": { name: "炖菜", icon: "🍛", category: "合成", discovered: false, recipe: ["soup", "meat"] },
+                "salad": { name: "沙拉", icon: "🥗", category: "合成", discovered: false, recipe: ["vegetable", "herb"] },
+                "potion": { name: "药水", icon: "🧪", category: "合成", discovered: false, recipe: ["herb", "water"] },
+                "medicine": { name: " medicine", icon: "💊", category: "合成", discovered: false, recipe: ["potion", "mushroom"] },
+                "fertilizer": { name: "肥料", icon: "💩", category: "合成", discovered: false, recipe: ["mud", "herb"] },
+                "flower": { name: "花", icon: "🌸", category: "合成", discovered: false, recipe: ["seed", "water"] },
+                "tree": { name: "树", icon: "🌳", category: "合成", discovered: false, recipe: ["seed", "fertilizer"] },
+                "garden": { name: "花园", icon: "🌻", category: "合成", discovered: false, recipe: ["flower", "fertilizer"] },
+                "hut": { name: "小屋", icon: "🏠", category: "合成", discovered: false, recipe: ["wooden_plank", "brick"] },
+                "house": { name: "房子", icon: "🏡", category: "合成", discovered: false, recipe: ["hut", "wooden_plank"] },
+                "castle": { name: "城堡", icon: "🏰", category: "合成", discovered: false, recipe: ["house", "brick"] },
+                "tool": { name: "工具", icon: "🔧", category: "合成", discovered: false, recipe: ["wooden_plank", "metal_ingot"] },
+                "weapon": { name: "武器", icon: "⚔️", category: "合成", discovered: false, recipe: ["tool", "metal_ingot"] },
+                "armor": { name: "盔甲", icon: "🛡️", category: "合成", discovered: false, recipe: ["metal_ingot", "metal_ingot"] },
+                "ship": { name: "船", icon: "🚢", category: "合成", discovered: false, recipe: ["wooden_plank", "wooden_plank"] },
+                "car": { name: "汽车", icon: "🚗", category: "合成", discovered: false, recipe: ["metal_ingot", "tool"] },
+                "plane": { name: "飞机", icon: "✈️", category: "合成", discovered: false, recipe: ["metal_ingot", "air"] },
+                "computer": { name: "电脑", icon: "💻", category: "合成", discovered: false, recipe: ["metal_ingot", "glass"] },
+                "phone": { name: "手机", icon: "📱", category: "合成", discovered: false, recipe: ["computer", "metal_ingot"] },
+                "book": { name: "书", icon: "📚", category: "合成", discovered: false, recipe: ["paper", "paper"] },
+                "painting": { name: "画", icon: "🎨", category: "合成", discovered: false, recipe: ["paper", "herb"] },
+                "music": { name: "音乐", icon: "🎵", category: "合成", discovered: false, recipe: ["herb", "air"] },
+                "art": { name: "艺术", icon: "🖼️", category: "合成", discovered: false, recipe: ["painting", "music"] },
+                "science": { name: "科学", icon: "🔬", category: "合成", discovered: false, recipe: ["book", "tool"] },
+                "magic": { name: "魔法", icon: "✨", category: "合成", discovered: false, recipe: ["potion", "air"] },
+                "technology": { name: "科技", icon: "⚙️", category: "合成", discovered: false, recipe: ["science", "computer"] },
+                "nature": { name: "自然", icon: "🌿", category: "合成", discovered: false, recipe: ["tree", "garden"] },
+                "life": { name: "生命", icon: "❤️", category: "合成", discovered: false, recipe: ["water", "seed"] },
+                "human": { name: "人类", icon: "👤", category: "合成", discovered: false, recipe: ["life", "magic"] },
+                "society": { name: "社会", icon: "👥", category: "合成", discovered: false, recipe: ["human", "human"] },
+                "civilization": { name: "文明", icon: "🏛️", category: "合成", discovered: false, recipe: ["society", "technology"] },
+                "universe": { name: "宇宙", icon: "🌌", category: "合成", discovered: false, recipe: ["air", "fire"] },
+                "black_hole": { name: "黑洞", icon: "🖤", category: "合成", discovered: false, recipe: ["universe", "universe"] },
+                "time": { name: "时间", icon: "⏰", category: "合成", discovered: false, recipe: ["universe", "magic"] },
+                "space": { name: "空间", icon: "🌠", category: "合成", discovered: false, recipe: ["universe", "science"] },
+                "dimension": { name: "维度", icon: "🔄", category: "合成", discovered: false, recipe: ["time", "space"] },
+                "god": { name: "神", icon: "👑", category: "合成", discovered: false, recipe: ["dimension", "magic"] },
+                "creation": { name: "创造", icon: "🌟", category: "合成", discovered: false, recipe: ["god", "life"] }
+            },
+            
+            // 合成配方
+            recipes: {
+                "mud": ["earth", "water"],
+                "clay": ["mud", "water"],
+                "brick": ["clay", "fire"],
+                "glass": ["sand", "fire"],
+                "metal_ingot": ["metal", "fire"],
+                "wooden_plank": ["wood", "wood"],
+                "paper": ["wood", "water"],
+                "bread": ["wheat", "fire"],
+                "cake": ["bread", "sugar"],
+                "soup": ["water", "vegetable"],
+                "stew": ["soup", "meat"],
+                "salad": ["vegetable", "herb"],
+                "potion": ["herb", "water"],
+                "medicine": ["potion", "mushroom"],
+                "fertilizer": ["mud", "herb"],
+                "flower": ["seed", "water"],
+                "tree": ["seed", "fertilizer"],
+                "garden": ["flower", "fertilizer"],
+                "hut": ["wooden_plank", "brick"],
+                "house": ["hut", "wooden_plank"],
+                "castle": ["house", "brick"],
+                "tool": ["wooden_plank", "metal_ingot"],
+                "weapon": ["tool", "metal_ingot"],
+                "armor": ["metal_ingot", "metal_ingot"],
+                "ship": ["wooden_plank", "wooden_plank"],
+                "car": ["metal_ingot", "tool"],
+                "plane": ["metal_ingot", "air"],
+                "computer": ["metal_ingot", "glass"],
+                "phone": ["computer", "metal_ingot"],
+                "book": ["paper", "paper"],
+                "painting": ["paper", "herb"],
+                "music": ["herb", "air"],
+                "art": ["painting", "music"],
+                "science": ["book", "tool"],
+                "magic": ["potion", "air"],
+                "technology": ["science", "computer"],
+                "nature": ["tree", "garden"],
+                "life": ["water", "seed"],
+                "human": ["life", "magic"],
+                "society": ["human", "human"],
+                "civilization": ["society", "technology"],
+                "universe": ["air", "fire"],
+                "black_hole": ["universe", "universe"],
+                "time": ["universe", "magic"],
+                "space": ["universe", "science"],
+                "dimension": ["time", "space"],
+                "god": ["dimension", "magic"],
+                "creation": ["god", "life"]
+            },
+            
+            // 成就系统
+            achievements: [
+                { id: "first_craft", name: "初次合成", description: "完成第一次合成", completed: false },
+                { id: "discover_10", name: "探索者", description: "发现10种物品", completed: false },
+                { id: "discover_30", name: "冒险家", description: "发现30种物品", completed: false },
+                { id: "discover_all", name: "博物学家", description: "发现所有物品", completed: false },
+                { id: "craft_50", name: "合成大师", description: "完成50次合成", completed: false },
+                { id: "craft_100", name: "合成专家", description: "完成100次合成", completed: false },
+                { id: "create_life", name: "生命创造者", description: "合成生命", completed: false },
+                { id: "create_civilization", name: "文明创造者", description: "合成文明", completed: false },
+                { id: "create_god", name: "神明创造者", description: "合成神", completed: false },
+                { id: "create_creation", name: "创世者", description: "合成创造", completed: false }
+            ],
+            
+            // 游戏状态
+            gameState: {
+                inventory: ["earth", "water", "fire", "air", "metal", "wood", "stone", "sand"],
+                discoveredItems: ["earth", "water", "fire", "air", "metal", "wood", "stone", "sand"],
+                craftingSlots: {},
+                result: null,
+                craftCount: 0,
+                discoveries: []
+            }
+        };
+        
+        // DOM元素
+        const elements = {
+            craftingSlots: document.querySelectorAll('.crafting-slot'),
+            resultSlot: document.getElementById('resultSlot'),
+            craftBtn: document.getElementById('craftBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            inventoryGrid: document.getElementById('inventoryGrid'),
+            discoveryList: document.getElementById('discoveryList'),
+            encyclopediaGrid: document.getElementById('encyclopediaGrid'),
+            discoveredCount: document.getElementById('discoveredCount'),
+            craftCount: document.getElementById('craftCount'),
+            achievementCount: document.getElementById('achievementCount'),
+            tutorialModal: document.getElementById('tutorialModal'),
+            startGameBtn: document.getElementById('startGameBtn'),
+            itemModal: document.getElementById('itemModal'),
+            closeItemModalBtn: document.getElementById('closeItemModalBtn'),
+            achievementModal: document.getElementById('achievementModal'),
+            closeAchievementModalBtn: document.getElementById('closeAchievementModalBtn')
+        };
+        
+        // 初始化游戏
+        function initGame() {
+            // 加载存档
+            loadGame();
+            
+            // 更新UI
+            updateInventory();
+            updateEncyclopedia();
+            updateStats();
+            updateDiscoveries();
+            
+            // 显示教程
+            if (gameData.gameState.craftCount === 0) {
+                elements.tutorialModal.style.display = 'flex';
+            }
+            
+            // 添加事件监听器
+            addEventListeners();
+        }
+        
+        // 添加事件监听器
+        function addEventListeners() {
+            // 合成按钮
+            elements.craftBtn.addEventListener('click', craftItems);
+            
+            // 清空按钮
+            elements.clearBtn.addEventListener('click', clearCraftingSlots);
+            
+            // 开始游戏按钮
+            elements.startGameBtn.addEventListener('click', function() {
+                elements.tutorialModal.style.display = 'none';
+            });
+            
+            // 关闭物品模态框
+            elements.closeItemModalBtn.addEventListener('click', function() {
+                elements.itemModal.style.display = 'none';
+            });
+            
+            // 关闭成就模态框
+            elements.closeAchievementModalBtn.addEventListener('click', function() {
+                elements.achievementModal.style.display = 'none';
+            });
+            
+            // 储物袋点击事件
+            document.getElementById('storageBag').addEventListener('click', function() {
+                generateRandomItem();
+            });
+        }
+        
+        // 生成随机物品并从左到右排列
+        function generateRandomItem() {
+            // 获取所有已发现的物品
+            const discoveredItems = gameData.gameState.discoveredItems;
+            if (discoveredItems.length === 0) return;
+            
+            // 随机选择一个物品
+            const randomIndex = Math.floor(Math.random() * discoveredItems.length);
+            const randomItemId = discoveredItems[randomIndex];
+            
+            // 找到第一个空槽位（从左到右）
+            for (let i = 1; i <= 3; i++) { // 只检查前3个槽位，第4个是储物袋
+                if (!gameData.gameState.craftingSlots[i]) {
+                    gameData.gameState.craftingSlots[i] = randomItemId;
+                    updateCraftingSlots();
+                    break;
+                }
+            }
+        }
+        
+        // 更新物品栏
+        function updateInventory() {
+            elements.inventoryGrid.innerHTML = '';
+            
+            gameData.gameState.inventory.forEach(itemId => {
+                const item = gameData.items[itemId];
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item';
+                itemElement.style.backgroundColor = getRandomColor(itemId);
+                itemElement.innerHTML = `${item.icon}<div class="item-name">${item.name}</div>`;
+                itemElement.draggable = true;
+                itemElement.dataset.itemId = itemId;
+                
+                // 添加拖拽事件
+                itemElement.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', itemId);
+                });
+                
+                slot.appendChild(itemElement);
+                elements.inventoryGrid.appendChild(slot);
+            });
+        }
+        
+        // 更新合成区域
+        function updateCraftingSlots() {
+            elements.craftingSlots.forEach(slot => {
+                const slotId = slot.dataset.slot;
+                const itemId = gameData.gameState.craftingSlots[slotId];
+                
+                slot.innerHTML = '';
+                
+                if (itemId) {
+                    const item = gameData.items[itemId];
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'item';
+                    itemElement.style.backgroundColor = getRandomColor(itemId);
+                    itemElement.innerHTML = `${item.icon}<div class="item-name">${item.name}</div>`;
+                    itemElement.draggable = true;
+                    itemElement.dataset.itemId = itemId;
+                    
+                    // 添加拖拽事件
+                    itemElement.addEventListener('dragstart', function(e) {
+                        e.dataTransfer.setData('text/plain', itemId);
+                        delete gameData.gameState.craftingSlots[slotId];
+                        updateCraftingSlots();
+                    });
+                    
+                    slot.appendChild(itemElement);
+                }
+            });
+        }
+        
+        // 更新结果区域
+        function updateResult() {
+            elements.resultSlot.innerHTML = '';
+            
+            if (gameData.gameState.result) {
+                const itemId = gameData.gameState.result;
+                const item = gameData.items[itemId];
+                
+                const itemElement = document.createElement('div');
+                itemElement.className = 'result-item';
+                itemElement.style.backgroundColor = getRandomColor(itemId);
+                itemElement.innerHTML = item.icon;
+                itemElement.title = item.name;
+                
+                // 添加点击事件
+                itemElement.addEventListener('click', function() {
+                    // 将结果添加到物品栏
+                    if (!gameData.gameState.inventory.includes(itemId)) {
+                        gameData.gameState.inventory.push(itemId);
+                        updateInventory();
+                    }
+                    
+                    // 清空结果
+                    gameData.gameState.result = null;
+                    updateResult();
+                });
+                
+                elements.resultSlot.appendChild(itemElement);
+            }
+        }
+        
+        // 更新物品图鉴
+        function updateEncyclopedia() {
+            elements.encyclopediaGrid.innerHTML = '';
+            
+            Object.keys(gameData.items).forEach(itemId => {
+                const item = gameData.items[itemId];
+                const isDiscovered = gameData.gameState.discoveredItems.includes(itemId);
+                
+                const itemElement = document.createElement('div');
+                itemElement.className = `encyclopedia-item ${isDiscovered ? 'discovered' : 'undiscovered'}`;
+                itemElement.innerHTML = `
+                    <div class="encyclopedia-item-icon">${item.icon}</div>
+                    <div class="encyclopedia-item-name">${isDiscovered ? item.name : '???'}</div>
+                `;
+                
+                // 添加点击事件
+                if (isDiscovered) {
+                    itemElement.addEventListener('click', function() {
+                        showItemDetails(itemId);
+                    });
+                }
+                
+                elements.encyclopediaGrid.appendChild(itemElement);
+            });
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            elements.discoveredCount.textContent = gameData.gameState.discoveredItems.length;
+            elements.craftCount.textContent = gameData.gameState.craftCount;
+            
+            // 计算已完成的成就
+            const completedAchievements = gameData.achievements.filter(a => a.completed).length;
+            elements.achievementCount.textContent = completedAchievements;
+        }
+        
+        // 更新发现列表
+        function updateDiscoveries() {
+            elements.discoveryList.innerHTML = '';
+            
+            gameData.gameState.discoveries.slice(0, 5).forEach(discovery => {
+                const item = gameData.items[discovery.itemId];
+                const discoveryElement = document.createElement('div');
+                discoveryElement.className = 'discovery-item';
+                discoveryElement.innerHTML = `
+                    <span>${item.icon} ${item.name}</span>
+                    <span>${discovery.time}</span>
+                `;
+                elements.discoveryList.appendChild(discoveryElement);
+            });
+        }
+        
+        // 显示物品详情
+        function showItemDetails(itemId) {
+            const item = gameData.items[itemId];
+            const modal = elements.itemModal;
+            const modalContent = modal.querySelector('.modal-content');
+            
+            modalContent.querySelector('h2').textContent = item.name;
+            modalContent.querySelector('div').textContent = item.icon;
+            modalContent.querySelector('#itemModalDesc').textContent = `类别: ${item.category}`;
+            
+            if (item.recipe) {
+                const recipeText = item.recipe.map(id => gameData.items[id].name).join(' + ');
+                modalContent.querySelector('#itemModalRecipe').textContent = `合成配方: ${recipeText}`;
+            } else {
+                modalContent.querySelector('#itemModalRecipe').textContent = '合成配方: 基础物品';
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        // 合成物品
+        function craftItems() {
+            // 获取合成槽中的物品
+            const slotItems = Object.values(gameData.gameState.craftingSlots);
+            
+            if (slotItems.length < 2) {
+                alert('请至少放入两个物品进行合成');
+                return;
+            }
+            
+            // 排序物品ID，确保配方匹配不受顺序影响
+            const sortedItems = slotItems.sort();
+            
+            // 查找匹配的配方
+            let result = null;
+            for (const [itemId, recipe] of Object.entries(gameData.recipes)) {
+                const sortedRecipe = recipe.sort();
+                
+                if (arraysEqual(sortedItems, sortedRecipe)) {
+                    result = itemId;
+                    break;
+                }
+            }
+            
+            if (result) {
+                // 检查是否是新发现
+                if (!gameData.gameState.discoveredItems.includes(result)) {
+                    gameData.gameState.discoveredItems.push(result);
+                    gameData.items[result].discovered = true;
+                    
+                    // 添加到发现列表
+                    const now = new Date();
+                    const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+                    gameData.gameState.discoveries.unshift({ itemId: result, time: timeStr });
+                    
+                    // 更新发现列表
+                    updateDiscoveries();
+                    
+                    // 检查成就
+                    checkAchievements();
+                }
+                
+                // 更新结果
+                gameData.gameState.result = result;
+                updateResult();
+                
+                // 增加合成次数
+                gameData.gameState.craftCount++;
+                updateStats();
+                
+                // 检查成就
+                checkAchievements();
+                
+                // 保存游戏
+                saveGame();
+            } else {
+                alert('这两个物品无法合成');
+            }
+        }
+        
+        // 清空合成槽
+        function clearCraftingSlots() {
+            gameData.gameState.craftingSlots = {};
+            updateCraftingSlots();
+            gameData.gameState.result = null;
+            updateResult();
+        }
+        
+        // 检查成就
+        function checkAchievements() {
+            const achievements = gameData.achievements;
+            const gameState = gameData.gameState;
+            
+            // 初次合成
+            if (!achievements[0].completed && gameState.craftCount >= 1) {
+                achievements[0].completed = true;
+                showAchievement(achievements[0]);
+            }
+            
+            // 发现10种物品
+            if (!achievements[1].completed && gameState.discoveredItems.length >= 10) {
+                achievements[1].completed = true;
+                showAchievement(achievements[1]);
+            }
+            
+            // 发现30种物品
+            if (!achievements[2].completed && gameState.discoveredItems.length >= 30) {
+                achievements[2].completed = true;
+                showAchievement(achievements[2]);
+            }
+            
+            // 发现所有物品
+            if (!achievements[3].completed && gameState.discoveredItems.length >= Object.keys(gameData.items).length) {
+                achievements[3].completed = true;
+                showAchievement(achievements[3]);
+            }
+            
+            // 完成50次合成
+            if (!achievements[4].completed && gameState.craftCount >= 50) {
+                achievements[4].completed = true;
+                showAchievement(achievements[4]);
+            }
+            
+            // 完成100次合成
+            if (!achievements[5].completed && gameState.craftCount >= 100) {
+                achievements[5].completed = true;
+                showAchievement(achievements[5]);
+            }
+            
+            // 合成生命
+            if (!achievements[6].completed && gameState.discoveredItems.includes('life')) {
+                achievements[6].completed = true;
+                showAchievement(achievements[6]);
+            }
+            
+            // 合成文明
+            if (!achievements[7].completed && gameState.discoveredItems.includes('civilization')) {
+                achievements[7].completed = true;
+                showAchievement(achievements[7]);
+            }
+            
+            // 合成神
+            if (!achievements[8].completed && gameState.discoveredItems.includes('god')) {
+                achievements[8].completed = true;
+                showAchievement(achievements[8]);
+            }
+            
+            // 合成创造
+            if (!achievements[9].completed && gameState.discoveredItems.includes('creation')) {
+                achievements[9].completed = true;
+                showAchievement(achievements[9]);
+            }
+            
+            // 更新成就计数
+            updateStats();
+        }
+        
+        // 显示成就
+        function showAchievement(achievement) {
+            const modal = elements.achievementModal;
+            modal.querySelector('#achievementMessage').textContent = `你获得了成就: ${achievement.name}\n${achievement.description}`;
+            modal.style.display = 'flex';
+        }
+        
+        // 保存游戏
+        function saveGame() {
+            const saveData = {
+                gameState: gameData.gameState,
+                achievements: gameData.achievements
+            };
+            localStorage.setItem('craftingGameSave', JSON.stringify(saveData));
+        }
+        
+        // 加载游戏
+        function loadGame() {
+            const saveData = localStorage.getItem('craftingGameSave');
+            
+            if (saveData) {
+                const data = JSON.parse(saveData);
+                gameData.gameState = data.gameState;
+                gameData.achievements = data.achievements;
+                
+                // 更新物品的发现状态
+                gameData.gameState.discoveredItems.forEach(itemId => {
+                    if (gameData.items[itemId]) {
+                        gameData.items[itemId].discovered = true;
+                    }
+                });
+            }
+        }
+        
+        // 辅助函数
+        function arraysEqual(a, b) {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] !== b[i]) return false;
+            }
+            return true;
+        }
+        
+        function getRandomColor(itemId) {
+            // 根据物品ID生成一致的颜色
+            let hash = 0;
+            for (let i = 0; i < itemId.length; i++) {
+                hash = itemId.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            
+            const c = (hash & 0x00FFFFFF)
+                .toString(16)
+                .toUpperCase();
+                
+            return "#" + "00000".substring(0, 6 - c.length) + c;
+        }
+        
+        // 初始化游戏
+        initGame();
+        
+        // 添加拖放事件
+        elements.craftingSlots.forEach(slot => {
+            slot.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('active');
+            });
+            
+            slot.addEventListener('dragleave', function() {
+                this.classList.remove('active');
+            });
+            
+            slot.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('active');
+                
+                const itemId = e.dataTransfer.getData('text/plain');
+                const slotId = this.dataset.slot;
+                
+                // 放置物品到合成槽
+                gameData.gameState.craftingSlots[slotId] = itemId;
+                updateCraftingSlots();
+            });
+        });
+    </script>
+</body>
+</html>
