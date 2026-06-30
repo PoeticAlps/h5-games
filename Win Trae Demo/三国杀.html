@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三国杀 - 个人版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f0f0f0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 水墨背景容器 */
+        .ink-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        /* 水墨SVG */
+        .ink-svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 水墨动画 */
+        @keyframes inkFlow {
+            0% {
+                transform: translateX(-100%) translateY(-100%) scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateX(0) translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes inkPulse {
+            0%, 100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.6;
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes inkFloat {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-10px) rotate(2deg);
+            }
+        }
+        
+        .ink-path {
+            animation: inkFlow 15s ease-out forwards;
+        }
+        
+        .ink-dot {
+            animation: inkPulse 4s ease-in-out infinite;
+        }
+        
+        .ink-shape {
+            animation: inkFloat 8s ease-in-out infinite;
+        }
+        
+        /* 游戏头部 */
+        .game-header {
+            background-color: #8b0000;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .game-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .game-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: #ffd700;
+            color: #8b0000;
+        }
+        
+        .btn-secondary {
+            background-color: #666;
+            color: white;
+        }
+        
+        /* 游戏主体 */
+        .game-container {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        
+        /* 左侧玩家区域 */
+        .player-area {
+            width: 300px;
+            background-color: #fff;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .player-info {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .player-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .player-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .player-hp {
+            color: #ff0000;
+            font-weight: bold;
+        }
+        
+        .player-mana {
+            color: #0000ff;
+            font-weight: bold;
+        }
+        
+        .player-equipment {
+            margin-top: 15px;
+        }
+        
+        .equipment-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .equipment-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .equipment-item {
+            background-color: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* 中央游戏区域 */
+        .game-board {
+            flex: 1;
+            background-color: transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .board-grid {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: grid;
+            grid-template-columns: repeat(5, 100px);
+            grid-template-rows: repeat(5, 100px);
+            gap: 10px;
+        }
+        
+        .board-cell {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        /* 右侧牌堆和操作区域 */
+        .action-area {
+            width: 300px;
+            background-color: #fff;
+            border-left: 1px solid #ddd;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-pile {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .pile-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .pile-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #8b0000;
+        }
+        
+        .hand-cards {
+            flex: 1;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        .hand-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .card-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .card {
+            width: 80px;
+            height: 120px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .card-name {
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .card-type {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .card-desc {
+            font-size: 10px;
+            text-align: center;
+            margin: 5px 0;
+        }
+        
+        /* 杀牌 */
+        .card-kill {
+            border-color: #ff0000;
+            background-color: #fff0f0;
+        }
+        
+        /* 闪牌 */
+        .card-dodge {
+            border-color: #0000ff;
+            background-color: #f0f0ff;
+        }
+        
+        /* 桃牌 */
+        .card-peach {
+            border-color: #00ff00;
+            background-color: #f0fff0;
+        }
+        
+        /* 酒牌 */
+        .card-wine {
+            border-color: #8b4513;
+            background-color: #fff5e6;
+        }
+        
+        /* 锦囊牌 */
+        .card-trick {
+            border-color: #ff8c00;
+            background-color: #fff8f0;
+        }
+        
+        /* 装备牌 */
+        .card-equipment {
+            border-color: #9400d3;
+            background-color: #faf0ff;
+        }
+        
+        /* 游戏日志 */
+        .game-log {
+            height: 100px;
+            background-color: #f8f8f8;
+            border-top: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .player-area,
+            .action-area {
+                width: 200px;
+            }
+            
+            .board-grid {
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(3, 80px);
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 水墨背景 -->
+    <div class="ink-container">
+        <svg class="ink-svg" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+            <!-- 背景渐变 -->
+            <defs>
+                <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#f0f0f0" />
+                    <stop offset="100%" stop-color="#e0e0e0" />
+                </linearGradient>
+                
+                <!-- 水墨渐变 -->
+                <linearGradient id="inkGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(0,0,0,0.1)" />
+                    <stop offset="100%" stop-color="rgba(0,0,0,0.3)" />
+                </linearGradient>
+                
+                <linearGradient id="inkGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(0,0,0,0.05)" />
+                    <stop offset="100%" stop-color="rgba(0,0,0,0.2)" />
+                </linearGradient>
+                
+                <linearGradient id="inkGradient3" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="rgba(0,0,0,0.08)" />
+                    <stop offset="100%" stop-color="rgba(0,0,0,0.25)" />
+                </linearGradient>
+            </defs>
+            
+            <!-- 背景 -->
+            <rect width="100%" height="100%" fill="url(#bgGradient)" />
+            
+            <!-- 水墨效果 -->
+            <path class="ink-path" d="M100,200 Q300,100 500,200 T900,300" stroke="url(#inkGradient1)" stroke-width="30" fill="none" opacity="0.6" />
+            <path class="ink-path" d="M150,400 Q400,300 600,400 T850,500" stroke="url(#inkGradient2)" stroke-width="25" fill="none" opacity="0.4" />
+            <path class="ink-path" d="M200,600 Q500,500 700,600 T900,700" stroke="url(#inkGradient3)" stroke-width="20" fill="none" opacity="0.5" />
+            <path class="ink-path" d="M50,800 Q350,700 650,800 T950,900" stroke="url(#inkGradient1)" stroke-width="35" fill="none" opacity="0.3" />
+            
+            <!-- 墨点效果 -->
+            <circle class="ink-dot" cx="200" cy="300" r="40" fill="rgba(0,0,0,0.1)" />
+            <circle class="ink-dot" cx="450" cy="500" r="30" fill="rgba(0,0,0,0.08)" />
+            <circle class="ink-dot" cx="700" cy="700" r="45" fill="rgba(0,0,0,0.12)" />
+            <circle class="ink-dot" cx="850" cy="200" r="25" fill="rgba(0,0,0,0.06)" />
+            <circle class="ink-dot" cx="150" cy="650" r="35" fill="rgba(0,0,0,0.09)" />
+            
+            <!-- 水墨形状 -->
+            <ellipse class="ink-shape" cx="300" cy="700" rx="60" ry="40" fill="rgba(0,0,0,0.07)" opacity="0.7" />
+            <ellipse class="ink-shape" cx="600" cy="300" rx="50" ry="35" fill="rgba(0,0,0,0.06)" opacity="0.6" />
+            <ellipse class="ink-shape" cx="800" cy="800" rx="70" ry="45" fill="rgba(0,0,0,0.08)" opacity="0.5" />
+        </svg>
+    </div>
+    
+    <!-- 游戏头部 -->
+    <div class="game-header">
+        <div class="game-title">三国杀 - 个人版</div>
+        <div class="game-controls">
+            <button class="btn btn-primary" onclick="startGame()">开始游戏</button>
+            <button class="btn btn-secondary" onclick="resetGame()">重置游戏</button>
+        </div>
+    </div>
+    
+    <!-- 游戏主体 -->
+    <div class="game-container">
+        <!-- 左侧玩家区域 -->
+        <div class="player-area">
+            <div class="player-info">
+                <div class="player-name" id="playerName">玩家</div>
+                <div class="player-stats">
+                    <div>体力: <span class="player-hp" id="playerHP">4</span></div>
+                    <div>手牌: <span id="playerHandCount">0</span></div>
+                </div>
+                <div class="player-equipment">
+                    <div class="equipment-title">装备</div>
+                    <div class="equipment-list" id="playerEquipment">
+                        <!-- 装备将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+            <div class="player-info">
+                <div class="player-name" id="enemyName">敌人</div>
+                <div class="player-stats">
+                    <div>体力: <span class="player-hp" id="enemyHP">4</span></div>
+                    <div>手牌: <span id="enemyHandCount">0</span></div>
+                </div>
+                <div class="player-equipment">
+                    <div class="equipment-title">装备</div>
+                    <div class="equipment-list" id="enemyEquipment">
+                        <!-- 装备将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 中央游戏区域 -->
+        <div class="game-board">
+            <div class="board-grid">
+                <div class="board-cell">1,1</div>
+                <div class="board-cell">1,2</div>
+                <div class="board-cell">1,3</div>
+                <div class="board-cell">1,4</div>
+                <div class="board-cell">1,5</div>
+                <div class="board-cell">2,1</div>
+                <div class="board-cell">2,2</div>
+                <div class="board-cell">2,3</div>
+                <div class="board-cell">2,4</div>
+                <div class="board-cell">2,5</div>
+                <div class="board-cell">3,1</div>
+                <div class="board-cell">3,2</div>
+                <div class="board-cell">3,3</div>
+                <div class="board-cell">3,4</div>
+                <div class="board-cell">3,5</div>
+                <div class="board-cell">4,1</div>
+                <div class="board-cell">4,2</div>
+                <div class="board-cell">4,3</div>
+                <div class="board-cell">4,4</div>
+                <div class="board-cell">4,5</div>
+                <div class="board-cell">5,1</div>
+                <div class="board-cell">5,2</div>
+                <div class="board-cell">5,3</div>
+                <div class="board-cell">5,4</div>
+                <div class="board-cell">5,5</div>
+            </div>
+        </div>
+        
+        <!-- 右侧牌堆和操作区域 -->
+        <div class="action-area">
+            <div class="card-pile">
+                <div class="pile-title">牌堆</div>
+                <div class="pile-count" id="deckCount">0</div>
+                <button class="btn btn-primary" onclick="drawCard()" style="margin-top: 10px;">摸牌</button>
+            </div>
+            <div class="hand-cards">
+                <div class="hand-title">手牌</div>
+                <div class="card-list" id="handCards">
+                    <!-- 手牌将在这里显示 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 游戏日志 -->
+    <div class="game-log" id="gameLog">
+        欢迎来到三国杀个人版！点击开始游戏按钮开始游戏。
+    </div>
+    
+    <script>
+        // 游戏状态
+        let gameState = {
+            deck: [],
+            discardPile: [],
+            player: {
+                name: "玩家",
+                hp: 4,
+                hand: [],
+                equipment: {
+                    weapon: null,
+                    armor: null,
+                    mount: null,
+                    treasure: null
+                }
+            },
+            enemy: {
+                name: "敌人",
+                hp: 4,
+                hand: [],
+                equipment: {
+                    weapon: null,
+                    armor: null,
+                    mount: null,
+                    treasure: null
+                }
+            },
+            currentPlayer: "player",
+            gameStarted: false
+        };
+        
+        // 牌库定义
+        const cardTypes = {
+            // 基本牌
+            KILL: {
+                name: "杀",
+                type: "基本牌",
+                desc: "对一名角色造成1点伤害",
+                class: "card-kill"
+            },
+            DODGE: {
+                name: "闪",
+                type: "基本牌",
+                desc: "抵消一张杀的效果",
+                class: "card-dodge"
+            },
+            PEACH: {
+                name: "桃",
+                type: "基本牌",
+                desc: "回复1点体力",
+                class: "card-peach"
+            },
+            WINE: {
+                name: "酒",
+                type: "基本牌",
+                desc: "本回合下一张杀伤害+1",
+                class: "card-wine"
+            },
+            
+            // 锦囊牌
+            DUEL: {
+                name: "决斗",
+                type: "锦囊牌",
+                desc: "与一名角色拼点，输的一方受到1点伤害",
+                class: "card-trick"
+            },
+            ARROW_RAIN: {
+                name: "万箭齐发",
+                type: "锦囊牌",
+                desc: "所有其他角色需出闪",
+                class: "card-trick"
+            },
+            THUNDER: {
+                name: "闪电",
+                type: "锦囊牌",
+                desc: "判定，若为黑桃2-9则受到3点伤害",
+                class: "card-trick"
+            },
+            
+            // 装备牌 - 武器
+            SWORD: {
+                name: "青龙偃月刀",
+                type: "武器",
+                desc: "攻击范围3",
+                class: "card-equipment"
+            },
+            SPEAR: {
+                name: "丈八蛇矛",
+                type: "武器",
+                desc: "攻击范围3，可将两张手牌当杀使用",
+                class: "card-equipment"
+            },
+            
+            // 装备牌 - 防具
+            ARMOR: {
+                name: "八卦阵",
+                type: "防具",
+                desc: "每次需要出闪时，可进行判定",
+                class: "card-equipment"
+            },
+            
+            // 装备牌 - 坐骑
+            HORSE: {
+                name: "赤兔马",
+                type: "坐骑",
+                desc: "攻击范围+1",
+                class: "card-equipment"
+            },
+            
+            // 装备牌 - 宝物
+            TREASURE: {
+                name: "玉玺",
+                type: "宝物",
+                desc: "每回合可额外摸一张牌",
+                class: "card-equipment"
+            }
+        };
+        
+        // 初始化牌库
+        function initDeck() {
+            const deck = [];
+            
+            // 添加基本牌
+            for (let i = 0; i < 10; i++) deck.push(cardTypes.KILL);
+            for (let i = 0; i < 8; i++) deck.push(cardTypes.DODGE);
+            for (let i = 0; i < 4; i++) deck.push(cardTypes.PEACH);
+            for (let i = 0; i < 2; i++) deck.push(cardTypes.WINE);
+            
+            // 添加锦囊牌
+            for (let i = 0; i < 3; i++) deck.push(cardTypes.DUEL);
+            for (let i = 0; i < 2; i++) deck.push(cardTypes.ARROW_RAIN);
+            for (let i = 0; i < 1; i++) deck.push(cardTypes.THUNDER);
+            
+            // 添加装备牌
+            for (let i = 0; i < 1; i++) deck.push(cardTypes.SWORD);
+            for (let i = 0; i < 1; i++) deck.push(cardTypes.SPEAR);
+            for (let i = 0; i < 1; i++) deck.push(cardTypes.ARMOR);
+            for (let i = 0; i < 1; i++) deck.push(cardTypes.HORSE);
+            for (let i = 0; i < 1; i++) deck.push(cardTypes.TREASURE);
+            
+            // 洗牌
+            return shuffle(deck);
+        }
+        
+        // 洗牌函数
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // 开始游戏
+        function startGame() {
+            if (gameState.gameStarted) return;
+            
+            // 初始化牌库
+            gameState.deck = initDeck();
+            gameState.discardPile = [];
+            
+            // 重置玩家状态
+            gameState.player.hp = 4;
+            gameState.player.hand = [];
+            gameState.player.equipment = {
+                weapon: null,
+                armor: null,
+                mount: null,
+                treasure: null
+            };
+            
+            gameState.enemy.hp = 4;
+            gameState.enemy.hand = [];
+            gameState.enemy.equipment = {
+                weapon: null,
+                armor: null,
+                mount: null,
+                treasure: null
+            };
+            
+            gameState.currentPlayer = "player";
+            gameState.gameStarted = true;
+            
+            // 发牌
+            for (let i = 0; i < 4; i++) {
+                gameState.player.hand.push(drawFromDeck());
+                gameState.enemy.hand.push(drawFromDeck());
+            }
+            
+            updateUI();
+            log("游戏开始！双方各获得4张手牌。");
+        }
+        
+        // 重置游戏
+        function resetGame() {
+            gameState.gameStarted = false;
+            updateUI();
+            log("游戏已重置。");
+        }
+        
+        // 从牌库抽牌
+        function drawFromDeck() {
+            if (gameState.deck.length === 0) {
+                // 牌库空了，从弃牌堆重新洗牌
+                gameState.deck = shuffle(gameState.discardPile);
+                gameState.discardPile = [];
+                log("牌库已空，从弃牌堆重新洗牌。");
+            }
+            return gameState.deck.pop();
+        }
+        
+        // 玩家摸牌
+        function drawCard() {
+            if (!gameState.gameStarted || gameState.currentPlayer !== "player") return;
+            
+            const card = drawFromDeck();
+            gameState.player.hand.push(card);
+            updateUI();
+            log(`玩家摸了一张${card.name}。`);
+        }
+        
+        // 出牌
+        function playCard(index) {
+            if (!gameState.gameStarted || gameState.currentPlayer !== "player") return;
+            
+            const card = gameState.player.hand[index];
+            if (!card) return;
+            
+            // 处理不同类型的牌
+            if (card === cardTypes.KILL) {
+                // 杀
+                gameState.enemy.hp -= 1;
+                log(`玩家使用了一张杀，敌人受到1点伤害。`);
+            } else if (card === cardTypes.PEACH) {
+                // 桃
+                gameState.player.hp = Math.min(4, gameState.player.hp + 1);
+                log(`玩家使用了一张桃，回复了1点体力。`);
+            } else if (card === cardTypes.WINE) {
+                // 酒
+                log(`玩家使用了一张酒，本回合下一张杀伤害+1。`);
+            } else if (card === cardTypes.DODGE) {
+                // 闪
+                log(`玩家使用了一张闪。`);
+            } else if (card === cardTypes.DUEL) {
+                // 决斗
+                const playerRoll = Math.random();
+                const enemyRoll = Math.random();
+                if (playerRoll > enemyRoll) {
+                    gameState.enemy.hp -= 1;
+                    log(`玩家使用了决斗，敌人受到1点伤害。`);
+                } else {
+                    gameState.player.hp -= 1;
+                    log(`玩家使用了决斗，自己受到1点伤害。`);
+                }
+            } else if (card === cardTypes.ARROW_RAIN) {
+                // 万箭齐发
+                gameState.player.hp -= 1;
+                gameState.enemy.hp -= 1;
+                log(`玩家使用了万箭齐发，双方各受到1点伤害。`);
+            } else if (card === cardTypes.THUNDER) {
+                // 闪电
+                const roll = Math.floor(Math.random() * 52) + 1; // 模拟52张牌
+                if (roll >= 2 && roll <= 9 && (roll % 4 === 1)) { // 黑桃2-9
+                    gameState.enemy.hp -= 3;
+                    log(`玩家使用了闪电，敌人受到3点伤害！`);
+                } else {
+                    log(`玩家使用了闪电，但没有命中。`);
+                }
+            } else if (card.type === "武器") {
+                // 武器
+                gameState.player.equipment.weapon = card;
+                log(`玩家装备了${card.name}。`);
+            } else if (card.type === "防具") {
+                // 防具
+                gameState.player.equipment.armor = card;
+                log(`玩家装备了${card.name}。`);
+            } else if (card.type === "坐骑") {
+                // 坐骑
+                gameState.player.equipment.mount = card;
+                log(`玩家装备了${card.name}。`);
+            } else if (card.type === "宝物") {
+                // 宝物
+                gameState.player.equipment.treasure = card;
+                log(`玩家装备了${card.name}。`);
+            }
+            
+            // 将牌放入弃牌堆
+            gameState.discardPile.push(card);
+            gameState.player.hand.splice(index, 1);
+            
+            updateUI();
+            
+            // 检查游戏结束
+            if (gameState.enemy.hp <= 0) {
+                log("敌人被击败！玩家胜利！");
+                gameState.gameStarted = false;
+                return;
+            }
+            
+            // 敌方回合
+            enemyTurn();
+        }
+        
+        // 敌方回合
+        function enemyTurn() {
+            log("敌人回合开始。");
+            
+            // 敌方摸牌
+            for (let i = 0; i < 2; i++) {
+                const card = drawFromDeck();
+                gameState.enemy.hand.push(card);
+            }
+            log("敌人摸了2张牌。");
+            
+            // 敌方出牌
+            const enemyCardCount = gameState.enemy.hand.length;
+            if (enemyCardCount > 0) {
+                const randomIndex = Math.floor(Math.random() * enemyCardCount);
+                const card = gameState.enemy.hand[randomIndex];
+                
+                if (card === cardTypes.KILL) {
+                    // 杀
+                    gameState.player.hp -= 1;
+                    log(`敌人使用了一张杀，玩家受到1点伤害。`);
+                } else if (card === cardTypes.PEACH) {
+                    // 桃
+                    gameState.enemy.hp = Math.min(4, gameState.enemy.hp + 1);
+                    log(`敌人使用了一张桃，回复了1点体力。`);
+                } else if (card === cardTypes.WINE) {
+                    // 酒
+                    log(`敌人使用了一张酒。`);
+                } else if (card === cardTypes.DODGE) {
+                    // 闪
+                    log(`敌人使用了一张闪。`);
+                } else if (card === cardTypes.DUEL) {
+                    // 决斗
+                    const playerRoll = Math.random();
+                    const enemyRoll = Math.random();
+                    if (enemyRoll > playerRoll) {
+                        gameState.player.hp -= 1;
+                        log(`敌人使用了决斗，玩家受到1点伤害。`);
+                    } else {
+                        gameState.enemy.hp -= 1;
+                        log(`敌人使用了决斗，自己受到1点伤害。`);
+                    }
+                } else if (card.type === "武器") {
+                    // 武器
+                    gameState.enemy.equipment.weapon = card;
+                    log(`敌人装备了${card.name}。`);
+                } else if (card.type === "防具") {
+                    // 防具
+                    gameState.enemy.equipment.armor = card;
+                    log(`敌人装备了${card.name}。`);
+                } else if (card.type === "坐骑") {
+                    // 坐骑
+                    gameState.enemy.equipment.mount = card;
+                    log(`敌人装备了${card.name}。`);
+                } else if (card.type === "宝物") {
+                    // 宝物
+                    gameState.enemy.equipment.treasure = card;
+                    log(`敌人装备了${card.name}。`);
+                }
+                
+                // 将牌放入弃牌堆
+                gameState.discardPile.push(card);
+                gameState.enemy.hand.splice(randomIndex, 1);
+            }
+            
+            updateUI();
+            
+            // 检查游戏结束
+            if (gameState.player.hp <= 0) {
+                log("玩家被击败！敌人胜利！");
+                gameState.gameStarted = false;
+                return;
+            }
+            
+            // 玩家回合
+            gameState.currentPlayer = "player";
+            log("玩家回合开始。");
+        }
+        
+        // 更新UI
+        function updateUI() {
+            // 更新牌堆数量
+            document.getElementById('deckCount').textContent = gameState.deck.length;
+            
+            // 更新玩家信息
+            document.getElementById('playerHP').textContent = gameState.player.hp;
+            document.getElementById('playerHandCount').textContent = gameState.player.hand.length;
+            
+            // 更新敌人信息
+            document.getElementById('enemyHP').textContent = gameState.enemy.hp;
+            document.getElementById('enemyHandCount').textContent = gameState.enemy.hand.length;
+            
+            // 更新玩家装备
+            const playerEquipment = document.getElementById('playerEquipment');
+            playerEquipment.innerHTML = '';
+            for (const [key, value] of Object.entries(gameState.player.equipment)) {
+                if (value) {
+                    const equipmentItem = document.createElement('div');
+                    equipmentItem.className = 'equipment-item';
+                    equipmentItem.textContent = value.name;
+                    playerEquipment.appendChild(equipmentItem);
+                }
+            }
+            
+            // 更新敌人装备
+            const enemyEquipment = document.getElementById('enemyEquipment');
+            enemyEquipment.innerHTML = '';
+            for (const [key, value] of Object.entries(gameState.enemy.equipment)) {
+                if (value) {
+                    const equipmentItem = document.createElement('div');
+                    equipmentItem.className = 'equipment-item';
+                    equipmentItem.textContent = value.name;
+                    enemyEquipment.appendChild(equipmentItem);
+                }
+            }
+            
+            // 更新手牌
+            const handCards = document.getElementById('handCards');
+            handCards.innerHTML = '';
+            gameState.player.hand.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = `card ${card.class}`;
+                cardElement.innerHTML = `
+                    <div class="card-name">${card.name}</div>
+                    <div class="card-type">${card.type}</div>
+                    <div class="card-desc">${card.desc}</div>
+                `;
+                cardElement.onclick = () => playCard(index);
+                handCards.appendChild(cardElement);
+            });
+        }
+        
+        // 游戏日志
+        function log(message) {
+            const gameLog = document.getElementById('gameLog');
+            gameLog.innerHTML += `<br>${message}`;
+            gameLog.scrollTop = gameLog.scrollHeight;
+        }
+        
+        // 初始化水墨动画
+        function initInkAnimation() {
+            const inkPaths = document.querySelectorAll('.ink-path');
+            const inkDots = document.querySelectorAll('.ink-dot');
+            const inkShapes = document.querySelectorAll('.ink-shape');
+            
+            // 为路径设置不同的动画延迟
+            inkPaths.forEach((path, index) => {
+                path.style.animationDelay = `${index * 1.5}s`;
+            });
+            
+            // 为墨点设置不同的动画延迟
+            inkDots.forEach((dot, index) => {
+                dot.style.animationDelay = `${index * 0.8}s`;
+            });
+            
+            // 为形状设置不同的动画延迟
+            inkShapes.forEach((shape, index) => {
+                shape.style.animationDelay = `${index * 2}s`;
+            });
+        }
+        
+        // 初始化
+        updateUI();
+        
+        // 页面加载完成后启动水墨动画
+        window.addEventListener('load', initInkAnimation);
+    </script>
+</body>
+</html>
