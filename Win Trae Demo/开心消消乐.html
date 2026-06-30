@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消除类游戏 - 经典三消</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .game-container {
+            max-width: 600px;
+            width: 100%;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 25px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .info-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .score {
+            color: #4CAF50;
+        }
+        
+        .level {
+            color: #2196F3;
+        }
+        
+        .moves {
+            color: #FF9800;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-secondary {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #da190b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 5px;
+            background-color: #e0e0e0;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            aspect-ratio: 1/1;
+            max-width: 400px;
+            margin: 0 auto 20px;
+        }
+        
+        .tile {
+            background-color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tile:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .tile.selected {
+            border: 3px solid #2196F3;
+            transform: scale(1.1);
+        }
+        
+        .tile.matching {
+            animation: matchAnimation 0.5s ease-in-out;
+        }
+        
+        .tile.falling {
+            animation: fallAnimation 0.3s ease-in;
+        }
+        
+        @keyframes matchAnimation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        
+        @keyframes fallAnimation {
+            0% { transform: translateY(-50px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .game-over-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .game-over h2 {
+            color: #f44336;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .game-over p {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .game-over .final-score {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 20px 0;
+        }
+        
+        .level-up {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 1100;
+            display: none;
+            animation: levelUpAnimation 0.5s ease-in-out;
+        }
+        
+        @keyframes levelUpAnimation {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        .level-up h3 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #FFEB3B;
+        }
+        
+        .level-up p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .game-info {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+            }
+            
+            .info-value {
+                font-size: 18px;
+            }
+            
+            .controls {
+                justify-content: center;
+            }
+            
+            .game-board {
+                max-width: 300px;
+                gap: 3px;
+                padding: 8px;
+            }
+            
+            .tile {
+                font-size: 18px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .game-container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .game-board {
+                max-width: 250px;
+            }
+            
+            .tile {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>消除类游戏 - 经典三消</h1>
+        
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">分数</div>
+                <div class="info-value score" id="score">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">等级</div>
+                <div class="info-value level" id="level">1</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">步数</div>
+                <div class="info-value moves" id="moves">30</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">开始游戏</button>
+            <button class="btn btn-secondary" id="resetBtn">重新开始</button>
+        </div>
+        
+        <div class="game-board" id="gameBoard"></div>
+    </div>
+    
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2>游戏结束！</h2>
+            <p>你的最终分数：</p>
+            <div class="final-score" id="finalScore">0</div>
+            <p>达到等级：</p>
+            <div class="info-value level" id="finalLevel">1</div>
+            <button class="btn btn-primary" id="restartBtn">再来一局</button>
+        </div>
+    </div>
+    
+    <div class="level-up" id="levelUp">
+        <h3>升级了！</h3>
+        <p>恭喜你达到了等级 <span id="newLevel">2</span>！</p>
+    </div>
+    
+    <script>
+        // 游戏变量
+        const gameBoard = document.getElementById('gameBoard');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const movesElement = document.getElementById('moves');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const finalLevelElement = document.getElementById('finalLevel');
+        const levelUpElement = document.getElementById('levelUp');
+        const newLevelElement = document.getElementById('newLevel');
+        
+        // 游戏参数
+        const gridSize = 8;
+        const tileTypes = ['🍎', '🍌', '🍇', '🍊', '🍋', '🍒', '🍓', '🍉'];
+        
+        // 游戏状态
+        let grid = [];
+        let score = 0;
+        let level = 1;
+        let moves = 30;
+        let isGameRunning = false;
+        let selectedTile = null;
+        let targetScore = 1000;
+        
+        // 初始化游戏
+        function initGame() {
+            // 重置游戏状态
+            score = 0;
+            level = 1;
+            moves = 30;
+            targetScore = 1000;
+            selectedTile = null;
+            
+            // 更新UI
+            scoreElement.textContent = score;
+            levelElement.textContent = level;
+            movesElement.textContent = moves;
+            
+            // 生成游戏网格
+            generateGrid();
+            drawBoard();
+            
+            // 清除游戏结束画面
+            gameOverElement.style.display = 'none';
+            levelUpElement.style.display = 'none';
+            
+            isGameRunning = false;
+            startBtn.textContent = '开始游戏';
+        }
+        
+        // 生成游戏网格
+        function generateGrid() {
+            grid = [];
+            for (let row = 0; row < gridSize; row++) {
+                grid[row] = [];
+                for (let col = 0; col < gridSize; col++) {
+                    // 生成随机 tile，确保不会立即形成匹配
+                    let tile;
+                    do {
+                        tile = tileTypes[Math.floor(Math.random() * tileTypes.length)];
+                        grid[row][col] = tile;
+                    } while (checkMatchAt(row, col));
+                }
+            }
+        }
+        
+        // 检查指定位置是否形成匹配
+        function checkMatchAt(row, col) {
+            const tile = grid[row][col];
+            
+            // 检查水平匹配
+            if (col >= 2) {
+                if (grid[row][col-1] === tile && grid[row][col-2] === tile) {
+                    return true;
+                }
+            }
+            
+            // 检查垂直匹配
+            if (row >= 2) {
+                if (grid[row-1][col] === tile && grid[row-2][col] === tile) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        // 绘制游戏板
+        function drawBoard() {
+            gameBoard.innerHTML = '';
+            
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const tileElement = document.createElement('div');
+                    tileElement.className = 'tile';
+                    tileElement.textContent = grid[row][col];
+                    tileElement.dataset.row = row;
+                    tileElement.dataset.col = col;
+                    
+                    tileElement.addEventListener('click', () => selectTile(row, col));
+                    
+                    gameBoard.appendChild(tileElement);
+                }
+            }
+        }
+        
+        // 选择 tile
+        function selectTile(row, col) {
+            if (!isGameRunning) return;
+            
+            const tileElement = document.querySelector(`.tile[data-row="${row}"][data-col="${col}"]`);
+            
+            if (!selectedTile) {
+                // 选择第一个 tile
+                selectedTile = { row, col };
+                tileElement.classList.add('selected');
+            } else {
+                // 选择第二个 tile，检查是否相邻
+                if (isAdjacent(selectedTile, { row, col })) {
+                    // 交换 tiles
+                    swapTiles(selectedTile, { row, col });
+                    
+                    // 检查是否形成匹配
+                    const matches = findMatches();
+                    if (matches.length > 0) {
+                        // 有匹配，处理消除
+                        processMatches(matches);
+                    } else {
+                        // 无匹配，交换回来
+                        setTimeout(() => {
+                            swapTiles({ row, col }, selectedTile);
+                            drawBoard();
+                        }, 300);
+                    }
+                    
+                    // 减少步数
+                    moves--;
+                    movesElement.textContent = moves;
+                    
+                    // 检查游戏结束条件
+                    checkGameOver();
+                }
+                
+                // 取消选择
+                const selectedElement = document.querySelector(`.tile[data-row="${selectedTile.row}"][data-col="${selectedTile.col}"]`);
+                if (selectedElement) {
+                    selectedElement.classList.remove('selected');
+                }
+                selectedTile = null;
+            }
+        }
+        
+        // 检查两个 tile 是否相邻
+        function isAdjacent(tile1, tile2) {
+            const rowDiff = Math.abs(tile1.row - tile2.row);
+            const colDiff = Math.abs(tile1.col - tile2.col);
+            return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+        }
+        
+        // 交换两个 tiles
+        function swapTiles(tile1, tile2) {
+            const temp = grid[tile1.row][tile1.col];
+            grid[tile1.row][tile1.col] = grid[tile2.row][tile2.col];
+            grid[tile2.row][tile2.col] = temp;
+            drawBoard();
+        }
+        
+        // 查找所有匹配
+        function findMatches() {
+            const matches = [];
+            const matched = Array(gridSize).fill().map(() => Array(gridSize).fill(false));
+            
+            // 查找水平匹配
+            for (let row = 0; row < gridSize; row++) {
+                let col = 0;
+                while (col < gridSize - 2) {
+                    const tile = grid[row][col];
+                    if (tile === grid[row][col+1] && tile === grid[row][col+2]) {
+                        // 找到匹配，标记所有匹配的 tiles
+                        let matchLength = 3;
+                        while (col + matchLength < gridSize && grid[row][col + matchLength] === tile) {
+                            matchLength++;
+                        }
+                        
+                        for (let i = 0; i < matchLength; i++) {
+                            matched[row][col + i] = true;
+                        }
+                        matches.push({ row, col, length: matchLength, direction: 'horizontal' });
+                        col += matchLength;
+                    } else {
+                        col++;
+                    }
+                }
+            }
+            
+            // 查找垂直匹配
+            for (let col = 0; col < gridSize; col++) {
+                let row = 0;
+                while (row < gridSize - 2) {
+                    const tile = grid[row][col];
+                    if (tile === grid[row+1][col] && tile === grid[row+2][col]) {
+                        // 找到匹配，标记所有匹配的 tiles
+                        let matchLength = 3;
+                        while (row + matchLength < gridSize && grid[row + matchLength][col] === tile) {
+                            matchLength++;
+                        }
+                        
+                        for (let i = 0; i < matchLength; i++) {
+                            matched[row + i][col] = true;
+                        }
+                        matches.push({ row, col, length: matchLength, direction: 'vertical' });
+                        row += matchLength;
+                    } else {
+                        row++;
+                    }
+                }
+            }
+            
+            return matches;
+        }
+        
+        // 处理匹配
+        function processMatches(matches) {
+            // 计算分数
+            let matchScore = 0;
+            matches.forEach(match => {
+                matchScore += match.length * 10;
+            });
+            
+            score += matchScore;
+            scoreElement.textContent = score;
+            
+            // 标记匹配的 tiles
+            const matchedTiles = [];
+            matches.forEach(match => {
+                if (match.direction === 'horizontal') {
+                    for (let i = 0; i < match.length; i++) {
+                        matchedTiles.push({ row: match.row, col: match.col + i });
+                    }
+                } else {
+                    for (let i = 0; i < match.length; i++) {
+                        matchedTiles.push({ row: match.row + i, col: match.col });
+                    }
+                }
+            });
+            
+            // 动画效果
+            matchedTiles.forEach(tile => {
+                const tileElement = document.querySelector(`.tile[data-row="${tile.row}"][data-col="${tile.col}"]`);
+                if (tileElement) {
+                    tileElement.classList.add('matching');
+                }
+            });
+            
+            // 延迟处理消除和下落
+            setTimeout(() => {
+                // 消除匹配的 tiles
+                matchedTiles.forEach(tile => {
+                    grid[tile.row][tile.col] = null;
+                });
+                
+                // 处理下落
+                dropTiles();
+                
+                // 检查是否有新的匹配
+                setTimeout(() => {
+                    const newMatches = findMatches();
+                    if (newMatches.length > 0) {
+                        processMatches(newMatches);
+                    } else {
+                        // 检查是否升级
+                        checkLevelUp();
+                    }
+                }, 300);
+            }, 500);
+        }
+        
+        // 处理 tiles 下落
+        function dropTiles() {
+            for (let col = 0; col < gridSize; col++) {
+                // 收集非空 tiles
+                const columnTiles = [];
+                for (let row = 0; row < gridSize; row++) {
+                    if (grid[row][col] !== null) {
+                        columnTiles.push(grid[row][col]);
+                    }
+                }
+                
+                // 填充空 tiles
+                const emptySlots = gridSize - columnTiles.length;
+                for (let i = 0; i < emptySlots; i++) {
+                    columnTiles.unshift(null);
+                }
+                
+                // 更新列
+                for (let row = 0; row < gridSize; row++) {
+                    if (grid[row][col] !== columnTiles[row]) {
+                        grid[row][col] = columnTiles[row];
+                    }
+                }
+            }
+            
+            // 生成新 tiles
+            generateNewTiles();
+            
+            // 绘制更新后的 board
+            drawBoard();
+            
+            // 添加下落动画
+            setTimeout(() => {
+                const tiles = document.querySelectorAll('.tile');
+                tiles.forEach(tile => {
+                    tile.classList.add('falling');
+                });
+            }, 50);
+        }
+        
+        // 生成新 tiles
+        function generateNewTiles() {
+            for (let col = 0; col < gridSize; col++) {
+                for (let row = 0; row < gridSize; row++) {
+                    if (grid[row][col] === null) {
+                        grid[row][col] = tileTypes[Math.floor(Math.random() * tileTypes.length)];
+                    }
+                }
+            }
+        }
+        
+        // 检查升级
+        function checkLevelUp() {
+            if (score >= targetScore) {
+                level++;
+                levelElement.textContent = level;
+                targetScore += level * 1000;
+                moves += 10;
+                movesElement.textContent = moves;
+                
+                // 显示升级画面
+                newLevelElement.textContent = level;
+                levelUpElement.style.display = 'block';
+                
+                // 3秒后隐藏升级画面
+                setTimeout(() => {
+                    levelUpElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // 检查游戏结束
+        function checkGameOver() {
+            if (moves <= 0) {
+                gameOver();
+            }
+        }
+        
+        // 游戏结束
+        function gameOver() {
+            isGameRunning = false;
+            finalScoreElement.textContent = score;
+            finalLevelElement.textContent = level;
+            gameOverElement.style.display = 'flex';
+            startBtn.textContent = '开始游戏';
+        }
+        
+        // 开始游戏
+        function startGame() {
+            if (isGameRunning) {
+                // 暂停游戏
+                isGameRunning = false;
+                startBtn.textContent = '继续游戏';
+            } else {
+                // 开始或继续游戏
+                isGameRunning = true;
+                startBtn.textContent = '暂停游戏';
+            }
+        }
+        
+        // 重新开始游戏
+        function resetGame() {
+            initGame();
+        }
+        
+        // 初始化游戏
+        initGame();
+        
+        // 事件监听器
+        startBtn.addEventListener('click', startGame);
+        resetBtn.addEventListener('click', resetGame);
+        restartBtn.addEventListener('click', resetGame);
+    </script>
+</body>
+</html>
