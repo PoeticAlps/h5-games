@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>H5 游戏厅</title>
+<style>
+    :root {
+        --bg: #0b0e14;
+        --bg-soft: #121722;
+        --card: #161c2a;
+        --card-hover: #1b2334;
+        --border: #232c40;
+        --text: #e8ecf4;
+        --text-dim: #8b94a8;
+        --accent: #37e0c8;
+        --accent-2: #7c6cff;
+        --accent-3: #ff5d8f;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+        background:
+            radial-gradient(1200px 600px at 15% -10%, rgba(124, 108, 255, .14), transparent 60%),
+            radial-gradient(1000px 500px at 90% 0%, rgba(55, 224, 200, .10), transparent 55%),
+            var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- Header ---------- */
+    header { padding: 64px 0 40px; text-align: center; }
+    header h1 {
+        font-size: clamp(34px, 6vw, 56px);
+        font-weight: 800;
+        letter-spacing: .04em;
+        background: linear-gradient(92deg, var(--accent) 0%, #5ad0ff 40%, var(--accent-2) 75%, var(--accent-3) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    header p { margin-top: 12px; color: var(--text-dim); font-size: 15px; letter-spacing: .12em; }
+    header .rule {
+        width: 72px; height: 3px; margin: 22px auto 0; border-radius: 2px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+
+    /* ---------- Section titles ---------- */
+    .section-title {
+        display: flex; align-items: baseline; gap: 12px;
+        margin: 34px 0 18px;
+    }
+    .section-title h2 { font-size: 20px; font-weight: 700; letter-spacing: .06em; }
+    .section-title span { color: var(--text-dim); font-size: 13px; }
+
+    /* ---------- Game grid ---------- */
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+        gap: 18px;
+    }
+
+    .card {
+        position: relative;
+        display: flex; flex-direction: column;
+        background: linear-gradient(180deg, var(--card) 0%, var(--bg-soft) 100%);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 20px 18px;
+        text-decoration: none;
+        color: inherit;
+        overflow: hidden;
+        transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease, background .22s ease;
+    }
+    /* 顶部霓虹描边，hover 时点亮 */
+    .card::before {
+        content: "";
+        position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, var(--c1), var(--c2));
+        opacity: 0; transition: opacity .22s ease;
+    }
+    .card:hover, .card:focus-visible {
+        transform: translateY(-6px);
+        border-color: color-mix(in srgb, var(--c1) 55%, var(--border));
+        box-shadow: 0 14px 34px rgba(0, 0, 0, .45), 0 0 22px color-mix(in srgb, var(--c1) 22%, transparent);
+        background: linear-gradient(180deg, var(--card-hover) 0%, var(--bg-soft) 100%);
+    }
+    .card:hover::before, .card:focus-visible::before { opacity: 1; }
+    .card:focus-visible { outline: 2px solid var(--c1); outline-offset: 2px; }
+
+    .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .badge {
+        width: 46px; height: 46px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 21px; font-weight: 800; color: #0b0e14;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--c1), var(--c2));
+        box-shadow: 0 4px 14px color-mix(in srgb, var(--c1) 35%, transparent);
+        transition: transform .22s ease;
+    }
+    .card:hover .badge { transform: scale(1.08) rotate(-4deg); }
+    .tag {
+        font-size: 11px; color: var(--text-dim);
+        border: 1px solid var(--border); border-radius: 999px;
+        padding: 3px 10px; letter-spacing: .08em;
+    }
+
+    .card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .card .desc { font-size: 13.5px; line-height: 1.65; color: var(--text-dim); flex: 1; }
+
+    .keys {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+        margin-top: 14px; font-size: 12px; color: var(--text-dim);
+    }
+    .keys kbd {
+        font-family: inherit; font-size: 11.5px;
+        background: #0e1320; border: 1px solid var(--border);
+        border-bottom-width: 2px; border-radius: 6px;
+        padding: 2px 8px; color: var(--text);
+        white-space: nowrap;
+    }
+
+    .play {
+        display: inline-flex; align-items: center; gap: 6px;
+        margin-top: 14px; font-size: 13px; font-weight: 700;
+        color: var(--c1); letter-spacing: .04em;
+    }
+    .play .arrow { transition: transform .22s ease; }
+    .card:hover .play .arrow { transform: translateX(5px); }
+
+    /* 每张卡片的主题色 */
+    .c-snake   { --c1: #4ade80; --c2: #16a34a; }
+    .c-jump    { --c1: #38bdf8; --c2: #2563eb; }
+    .c-match   { --c1: #f472b6; --c2: #db2777; }
+    .c-craft   { --c1: #fbbf24; --c2: #d97706; }
+    .c-craft2  { --c1: #f97316; --c2: #dc2626; }
+    .c-fps     { --c1: #a3e635; --c2: #65a30d; }
+    .c-sanguo  { --c1: #f87171; --c2: #b91c1c; }
+
+    /* ---------- Misc ---------- */
+    .misc-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+    .misc-link {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, .02);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        text-decoration: none; color: var(--text-dim);
+        font-size: 13px;
+        transition: border-color .2s ease, color .2s ease, transform .2s ease;
+    }
+    .misc-link:hover { border-color: #33405e; color: var(--text); transform: translateY(-2px); }
+    .misc-link .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); flex: none; }
+    .misc-link:hover .dot { background: var(--accent); }
+    .misc-link b { color: var(--text); font-weight: 600; margin-right: 6px; }
+
+    /* ---------- Footer ---------- */
+    footer {
+        margin-top: auto;
+        padding: 34px 0 40px;
+        text-align: center;
+        color: #5b6478; font-size: 12.5px; letter-spacing: .05em;
+    }
+    footer .line { width: 100%; max-width: 1180px; margin: 0 auto 26px; padding: 0 24px; }
+    footer .line hr { border: none; border-top: 1px solid var(--border); }
+
+    @media (max-width: 560px) {
+        header { padding: 44px 0 28px; }
+        .grid { grid-template-columns: 1fr; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="wrap">
+        <h1>H5 游戏厅</h1>
+        <p>纯前端单文件小游戏 · 点开即玩 · 无需安装</p>
+        <div class="rule"></div>
+    </div>
+</header>
+
+<main class="wrap">
+    <div class="section-title">
+        <h2>游戏列表</h2>
+        <span>7 款</span>
+    </div>
+
+    <div class="grid">
+
+        <a class="card c-snake" href="Win Trae Demo/贪吃蛇snake.html">
+            <div class="card-top"><span class="badge">蛇</span><span class="tag">经典</span></div>
+            <h3>经典贪吃蛇</h3>
+            <p class="desc">控制小蛇吃掉食物不断变长，撞到墙壁或自己的身体即结束，看你能拿多少分。</p>
+            <div class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 转向 · 点击「开始游戏」</div>
+            <span class="play">开始游戏 <span class="arrow">→</span></span>
+        </a>
+
+        <a class="card c-jump" href="Win Trae Demo/jump_game.html">
+            <div class="card-top"><span class="badge">跳</span><span class="tag">休闲</span></div>
+            <h3>跳一跳</h3>
+            <p class="desc">按住蓄力、松开起跳，从一个方块跳上下一个方块，蓄力越久跳得越远，落点越准分越高。</p>
+            <div class="keys"><kbd>鼠标按住 / 触屏按住</kbd> 蓄力，松开起跳</div>
+            <span class="play">开始游戏 <span class="arrow">→</span></span>
+        </a>
+
+        <a class="card c-match" href="Win Trae Demo/开心消消乐.html">
+            <div class="card-top"><span class="badge">消</span><span class="tag">三消</span></div>
+            <h3>消除类游戏 - 经典三消</h3>
+            <p class="desc">交换相邻的两个方块，凑成三连即可消除得分，在限定步数内冲上目标分数。</p>
+            <div class="keys"><kbd>鼠标点击</kbd> 选中两个相邻方块交换</div>
+            <span class="play">开始游戏 <span class="arrow">→</span></span>
+        </a>
+
+        <a class="card c-craft" href="Win Trae Demo/crafting_game.html">
+            <div class="card-top"><span class="badge">合</span><span class="tag">合成</span></div>
+            <h3>元素合成游戏</h3>
+            <p class="desc">把物品栏中的元素拖入合成槽，点击「合成」尝试产出新元素，集齐图鉴、解锁成就。</p>
+            <div class="keys"><kbd>拖拽</kbd> 放入合成槽 · <kbd>点击</kbd> 「合成」按钮</div>
+            <span class="play">开始游戏 <span class="arrow">→</span></span>
+        </a>
+
+        <a class="card c-craft2" href="Win Trae Demo/crafting_game_v2.html">
+            <div class="card-top"><span class="badge">融</span><span class="tag">合成</span></div>
+            <h3>合成大师 - 七七四十九平台</h3>
+            <p class="desc">点击四个基础生成器产出原料，把两个同等级物品拖到相邻平台自动合成更高级物品，向 49 级图鉴进发。</p>
+            <div class="keys"><kbd>点击</kbd> 生成器产出 · <kbd>拖拽</kbd> 上平台合成</div>
+            <span class="play">开始游戏 <span class="arrow">→</span></span>
+        </a>
+
+        <a class="card c-fps" href="Win Trae Demo/fps_game.html">
+            <div class="card-top"><span class="badge">枪</span><span class="tag">3D 射击</span></div>
+            <h3>Counter-Strike: Global Offensive Clone</h3>
+            <p class="desc">3D 第一人称射击，含竞技匹配 / 死亡竞赛 / 拆弹模式，地图 Dust 2、Inferno、Mirage，武器从 Glock-18 到 AWP。界面为英文。</p>
+            <div class="keys"><kbd>W A S D</kbd> 移动 · <kbd>鼠标</kbd> 瞄准 / 开火 · <kbd>Shift</kbd> 疾跑 · <kbd>Ctrl</kbd> 蹲下 · <kbd>空格</kbd> 跳 · <kbd>R</kbd> 换弹</div>
+            <span class="play">开始游戏 <span class="arrow">→</span></span>
+        </a>
+
+        <a class="card c-sanguo" href="Win Trae Demo/三国杀.html">
+            <div class="card-top"><span class="badge">杀</span><span class="tag">卡牌</span></div>
+            <h3>三国杀 - 个人版</h3>
+            <p class="desc">与电脑对手的回合制卡牌对决：双方各 4 点体力，打出杀、闪、桃、万箭齐发等卡牌击败对方。</p>
+            <div class="keys"><kbd>点击手牌</kbd> 出牌 · <kbd>按钮</kbd> 摸牌 / 开始游戏</div>
+            <span class="play">开始游戏 <span class="arrow">→</span></span>
+        </a>
+
+    </div>
+
+    <div class="section-title">
+        <h2>更多页面</h2>
+        <span>非游戏小工具</span>
+    </div>
+
+    <div class="misc-row">
+        <a class="misc-link" href="misc/合浦珠还.html">
+            <span class="dot"></span>
+            <span><b>合浦珠还</b> 校园失物招领平台（Leaflet 地图，依赖外部 CDN）</span>
+        </a>
+        <a class="misc-link" href="misc/丢宝宝.html">
+            <span class="dot"></span>
+            <span><b>丢宝宝</b> 寻宠启事落地页（图片依赖外部 CDN）</span>
+        </a>
+    </div>
+</main>
+
+<footer>
+    <div class="line"><hr></div>
+    纯静态站点 · 双击 index.html 或挂任意静态服务器即可游玩
+</footer>
+
+</body>
+</html>
