@@ -35,6 +35,18 @@ var lostItemsCount = {
     '超市': 2
 };
 
+// 高德导航：优先唤起高德 App（移动端 callnative=1，未装 App 自动回退 H5），
+// 桌面端新窗口打开高德网页版路线规划。
+// 注意：marker 坐标来自 OpenStreetMap（WGS-84），高德使用 GCJ-02，
+// 故通过 uri.amap.com 的 coordinate=wgs84 参数由高德自动纠偏，避免定位偏移约 500 米。
+window.navigateToMarker = function(name, lng, lat) {
+    var isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    var url = 'https://uri.amap.com/navigation?to=' + lng + ',' + lat + ',' + encodeURIComponent(name) +
+              '&mode=car&policy=1&src=' + encodeURIComponent('合浦珠还·校园失物招领') +
+              '&coordinate=wgs84&callnative=' + (isMobile ? '1' : '0');
+    window.open(url, '_blank');
+};
+
 // 初始化地图（当Maps模块可见时）
 function initMap() {
     if (map) return; // 避免重复初始化
@@ -78,7 +90,7 @@ function initMap() {
                 '<div style="text-align: center;">' +
                 '<strong>' + name + '</strong><br>' +
                 '📍 ' + count + '个失物待领<br>' +
-                '<button onclick="alert(\'导航功能开发中...\')" style="margin-top: 5px; padding: 3px 10px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">导航到这里</button>' +
+                '<button onclick="navigateToMarker(\'' + name + '\',' + coord[1] + ',' + coord[0] + ')" style="margin-top: 5px; padding: 3px 10px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">导航到这里</button>' +
                 '</div>'
             );
         } else {
