@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Counter-Strike: Global Offensive Clone</title>
     <style>
         * {
@@ -124,6 +124,7 @@
             border-radius: 10px;
             display: none;
             pointer-events: all;
+            z-index: 900;
         }
         
         .buy-menu.active {
@@ -200,6 +201,7 @@
             align-items: center;
             justify-content: center;
             pointer-events: all;
+            z-index: 1000;
         }
         
         .game-menu h1 {
@@ -277,6 +279,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            z-index: 1100;
         }
         
         .loading-bar {
@@ -363,20 +366,158 @@
             .health-bar, .armor-bar {
                 width: 150px;
             }
-            
+
             .weapon-slot {
                 width: 60px;
                 height: 60px;
                 font-size: 10px;
             }
-            
+
             .current-ammo {
                 font-size: 24px;
             }
-            
+
             .total-ammo {
                 font-size: 14px;
             }
+        }
+
+        /* ---------- Touch Controls (mobile only, shown when touch detected) ---------- */
+        #touch-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 400;
+            pointer-events: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        #touch-layer.visible {
+            display: block;
+        }
+
+        .touch-zone {
+            position: absolute;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        #zone-move {
+            top: 0;
+            left: 0;
+            width: 45%;
+            height: 100%;
+        }
+
+        #zone-look {
+            top: 0;
+            right: 0;
+            width: 55%;
+            height: 100%;
+        }
+
+        #joy-base {
+            position: absolute;
+            left: 90px;
+            bottom: 110px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+            opacity: 0.45;
+            pointer-events: none;
+            transform: translate(0, 0);
+        }
+
+        #joy-base.grabbed {
+            opacity: 0.85;
+            border-color: rgba(255, 102, 0, 0.7);
+        }
+
+        #joy-knob {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.55);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            transform: translate(-50%, -50%);
+            transition: left 0.05s linear, top 0.05s linear;
+        }
+
+        .touch-btn {
+            position: absolute;
+            pointer-events: auto;
+            touch-action: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #ffffff;
+            background: rgba(255, 102, 0, 0.35);
+            border: 2px solid rgba(255, 102, 0, 0.75);
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+            letter-spacing: 0.05em;
+        }
+
+        .touch-btn.pressed {
+            background: rgba(255, 102, 0, 0.65);
+            box-shadow: 0 0 18px rgba(255, 102, 0, 0.6);
+        }
+
+        #btn-fire {
+            width: 88px;
+            height: 88px;
+            right: 24px;
+            bottom: 26px;
+            font-size: 17px;
+        }
+
+        #btn-jump {
+            width: 62px;
+            height: 62px;
+            right: 122px;
+            bottom: 30px;
+            font-size: 13px;
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.55);
+        }
+
+        #btn-jump.pressed {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        #btn-reload {
+            width: 50px;
+            height: 50px;
+            right: 200px;
+            bottom: 40px;
+            font-size: 13px;
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.55);
+        }
+
+        #btn-reload.pressed {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* 触控层可见时,武器/弹药显示上移,避让右下角按钮簇 */
+        #touch-layer.visible ~ .ui.ammo-display {
+            bottom: 132px;
+        }
+
+        #touch-layer.visible ~ .ui.weapon-display {
+            bottom: 200px;
         }
     </style>
 </head>
@@ -384,7 +525,17 @@
     <div id="game-container">
         <!-- Game Canvas -->
         <canvas id="game-canvas"></canvas>
-        
+
+        <!-- Touch Controls (mobile only) -->
+        <div id="touch-layer">
+            <div class="touch-zone" id="zone-move"></div>
+            <div class="touch-zone" id="zone-look"></div>
+            <div id="joy-base"><div id="joy-knob"></div></div>
+            <div class="touch-btn" id="btn-fire">FIRE</div>
+            <div class="touch-btn" id="btn-jump">JUMP</div>
+            <div class="touch-btn" id="btn-reload">R</div>
+        </div>
+
         <!-- HUD -->
         <div class="ui hud">
             <div class="health-armor">
@@ -724,6 +875,16 @@
                     pressed: false,
                     lastPressed: 0
                 };
+
+                // Touch input state (mobile virtual controls; untouched on desktop)
+                this.touch = {
+                    moveX: 0,     // 虚拟摇杆横向分量 [-1, 1]
+                    moveY: 0,     // 虚拟摇杆纵向分量 [-1, 1](向上为负)
+                    lookDX: 0,    // 右半屏视角拖动的帧累计增量
+                    lookDY: 0,
+                    firing: false, // 开火按钮按住
+                    jump: false    // 跳跃按钮按住
+                };
                 
                 // Initialize shaders
                 this.initShaders();
@@ -984,7 +1145,13 @@
                 // Update rotation based on mouse input
                 this.player.rotation[0] += this.mouse.deltaX * 0.01;
                 this.player.rotation[1] += this.mouse.deltaY * 0.01;
-                
+
+                // Touch look drag (right half of screen; same mapping as mouse)
+                this.player.rotation[0] += this.touch.lookDX * 0.01;
+                this.player.rotation[1] += this.touch.lookDY * 0.01;
+                this.touch.lookDX = 0;
+                this.touch.lookDY = 0;
+
                 // Clamp vertical rotation
                 this.player.rotation[1] = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.player.rotation[1]));
                 
@@ -1015,8 +1182,8 @@
                     return;
                 }
                 
-                // Handle firing
-                if (this.mouse.pressed && this.gameState.time - this.weaponState.lastFireTime >= currentWeapon.fireRate) {
+                // Handle firing (mouse hold or touch FIRE button hold)
+                if ((this.mouse.pressed || this.touch.firing) && this.gameState.time - this.weaponState.lastFireTime >= currentWeapon.fireRate) {
                     if (this.weaponState.currentMag > 0 || currentWeapon.ammo === Infinity) {
                         this.fireWeapon();
                         this.weaponState.lastFireTime = this.gameState.time;
@@ -1754,18 +1921,24 @@
                     desiredX += rightVector[0] * moveSpeed;
                     desiredZ += rightVector[2] * moveSpeed;
                 }
-                
+
+                // Touch joystick (analog movement, mobile only)
+                if (this.touch.moveX !== 0 || this.touch.moveY !== 0) {
+                    desiredX += (normalizedDirection[0] * -this.touch.moveY + rightVector[0] * this.touch.moveX) * moveSpeed;
+                    desiredZ += (normalizedDirection[2] * -this.touch.moveY + rightVector[2] * this.touch.moveX) * moveSpeed;
+                }
+
                 // Check collision for X and Z separately
                 if (!this.checkCollision([desiredX, this.player.position[1], this.player.position[2]])) {
                     this.player.position[0] = desiredX;
                 }
-                
+
                 if (!this.checkCollision([this.player.position[0], this.player.position[1], desiredZ])) {
                     this.player.position[2] = desiredZ;
                 }
-                
-                // Jump (simple implementation)
-                if (this.keys[' '] && this.player.position[1] <= 0) {
+
+                // Jump (simple implementation; keyboard space or touch JUMP button)
+                if ((this.keys[' '] || this.touch.jump) && this.player.position[1] <= 0) {
                     this.player.velocity[1] = 0.5;
                 }
                 
@@ -2137,7 +2310,10 @@
             
             // Load ranking data
             gameEngine.loadRanking();
-            
+
+            // Mobile touch controls (virtual joystick + look + buttons)
+            setupTouchControls(gameEngine);
+
             // Game Menu
             const gameMenu = document.getElementById('game-menu');
             const playButton = document.getElementById('play-button');
@@ -2146,6 +2322,141 @@
             const hostageButton = document.getElementById('hostage-button');
             const loadingScreen = document.getElementById('loading-screen');
             
+            // ===== Mobile touch controls =====
+            // 仅在触屏设备显示(pointer: coarse 或首次触摸);桌面键鼠路径完全不受影响。
+            function setupTouchControls(engine) {
+                const layer = document.getElementById('touch-layer');
+                if (!layer) return;
+
+                const zoneMove = document.getElementById('zone-move');
+                const zoneLook = document.getElementById('zone-look');
+                const joyBase = document.getElementById('joy-base');
+                const joyKnob = document.getElementById('joy-knob');
+                const t = engine.touch;
+
+                const JOY_MAX = 50;          // 摇杆最大行程(像素)
+                let movePointerId = null;
+                let lookPointerId = null;
+                let joyCenter = { x: 0, y: 0 };
+                let lookLast = { x: 0, y: 0 };
+
+                // 显示时机:粗指针设备,或收到首次真实触摸
+                if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+                    layer.classList.add('visible');
+                }
+                window.addEventListener('touchstart', function() {
+                    layer.classList.add('visible');
+                }, { once: true, passive: true });
+
+                // 混合设备(触屏笔记本):用鼠标点击触控层 → 隐藏触控层,回退纯键鼠
+                layer.addEventListener('pointerdown', function(e) {
+                    if (e.pointerType === 'mouse') {
+                        layer.classList.remove('visible');
+                    }
+                }, true);
+                layer.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                });
+
+                // ---- 左半屏:虚拟摇杆(pointerdown 起点为中心,拖动向量 = 移动) ----
+                function setKnob(dx, dy) {
+                    joyKnob.style.left = (60 + dx) + 'px';
+                    joyKnob.style.top = (60 + dy) + 'px';
+                }
+
+                function updateJoy(x, y) {
+                    let dx = x - joyCenter.x;
+                    let dy = y - joyCenter.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist > JOY_MAX) {
+                        dx = dx / dist * JOY_MAX;
+                        dy = dy / dist * JOY_MAX;
+                    }
+                    setKnob(dx, dy);
+                    t.moveX = dx / JOY_MAX;
+                    t.moveY = dy / JOY_MAX;
+                }
+
+                function resetJoy() {
+                    movePointerId = null;
+                    t.moveX = 0;
+                    t.moveY = 0;
+                    joyBase.classList.remove('grabbed');
+                    joyBase.style.left = '';
+                    joyBase.style.top = '';
+                    setKnob(0, 0); // 回到 CSS 默认中心(knob left/top 覆盖为 60px 即中心)
+                }
+
+                zoneMove.addEventListener('pointerdown', function(e) {
+                    if (e.pointerType === 'mouse' || movePointerId !== null) return;
+                    movePointerId = e.pointerId;
+                    try { zoneMove.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+                    joyCenter = { x: e.clientX, y: e.clientY };
+                    // 以手指按下点为摇杆底座中心(底座 120px,偏移半个宽度)
+                    joyBase.style.left = (e.clientX - 60) + 'px';
+                    joyBase.style.top = (e.clientY - 60) + 'px';
+                    joyBase.classList.add('grabbed');
+                    setKnob(0, 0);
+                    updateJoy(e.clientX, e.clientY);
+                });
+
+                zoneMove.addEventListener('pointermove', function(e) {
+                    if (e.pointerId !== movePointerId) return;
+                    updateJoy(e.clientX, e.clientY);
+                });
+
+                zoneMove.addEventListener('pointerup', function(e) {
+                    if (e.pointerId === movePointerId) resetJoy();
+                });
+                zoneMove.addEventListener('pointercancel', function(e) {
+                    if (e.pointerId === movePointerId) resetJoy();
+                });
+
+                // ---- 右半屏:拖动 = 视角转向(映射到现有鼠标转向逻辑) ----
+                zoneLook.addEventListener('pointerdown', function(e) {
+                    if (e.pointerType === 'mouse' || lookPointerId !== null) return;
+                    lookPointerId = e.pointerId;
+                    try { zoneLook.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+                    lookLast = { x: e.clientX, y: e.clientY };
+                });
+
+                zoneLook.addEventListener('pointermove', function(e) {
+                    if (e.pointerId !== lookPointerId) return;
+                    t.lookDX += e.clientX - lookLast.x;
+                    t.lookDY += e.clientY - lookLast.y;
+                    lookLast = { x: e.clientX, y: e.clientY };
+                });
+
+                function endLook(e) {
+                    if (e.pointerId === lookPointerId) lookPointerId = null;
+                }
+                zoneLook.addEventListener('pointerup', endLook);
+                zoneLook.addEventListener('pointercancel', endLook);
+
+                // ---- 右下角按钮:开火(按住持续射击)/ 跳跃 / 换弹 ----
+                function bindTouchButton(id, onDown, onUp) {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('pointerdown', function(e) {
+                        if (e.pointerType === 'mouse') return;
+                        e.preventDefault();
+                        try { el.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+                        el.classList.add('pressed');
+                        onDown();
+                    });
+                    const end = function(e) {
+                        el.classList.remove('pressed');
+                        if (onUp) onUp();
+                    };
+                    el.addEventListener('pointerup', end);
+                    el.addEventListener('pointercancel', end);
+                }
+
+                bindTouchButton('btn-fire', function() { t.firing = true; }, function() { t.firing = false; });
+                bindTouchButton('btn-jump', function() { t.jump = true; }, function() { t.jump = false; });
+                bindTouchButton('btn-reload', function() { engine.keys['r'] = true; }, function() { engine.keys['r'] = false; });
+            }
+
             function startGameWithMode(mode) {
                 gameMenu.style.display = 'none';
                 loadingScreen.style.display = 'flex';

@@ -94,6 +94,10 @@
             border: 2px solid #333;
             border-radius: 5px;
             background-color: #f8f8f8;
+            /* 触屏:在画布上滑动转向,禁止页面滚动干扰;小屏自适应缩放(桌面渲染不受影响) */
+            touch-action: none;
+            max-width: 100%;
+            height: auto;
         }
         
         .mobile-controls {
@@ -546,6 +550,57 @@
                 nextDirection = 'right';
             }
         });
+
+        // ===== 触屏滑动手势转向(与键盘/按钮并存,不影响桌面) =====
+        let swipeStartX = 0;
+        let swipeStartY = 0;
+        let swipeHandled = false; // 防抖:同一段位移只判定一次
+        const SWIPE_THRESHOLD = 24; // 触发转向的最小位移(像素)
+
+        function tryTurnBySwipe(dx, dy) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // 水平主轴
+                if (dx > 0) {
+                    if (direction !== 'left') nextDirection = 'right';
+                } else {
+                    if (direction !== 'right') nextDirection = 'left';
+                }
+            } else {
+                // 垂直主轴
+                if (dy > 0) {
+                    if (direction !== 'up') nextDirection = 'down';
+                } else {
+                    if (direction !== 'down') nextDirection = 'up';
+                }
+            }
+        }
+
+        canvas.addEventListener('touchstart', function(e) {
+            const t = e.changedTouches[0];
+            swipeStartX = t.clientX;
+            swipeStartY = t.clientY;
+            swipeHandled = false;
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', function(e) {
+            if (swipeHandled) return;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - swipeStartX;
+            const dy = t.clientY - swipeStartY;
+            // 位移主轴判定,未达阈值前累计位移
+            if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) return;
+            // 达到阈值:转一次向,并把累计位移锚点重置到当前手指位置,
+            // 继续拖动可再次转向(每 24px 一段,一段只转一次)
+            tryTurnBySwipe(dx, dy);
+            swipeStartX = t.clientX;
+            swipeStartY = t.clientY;
+            swipeHandled = true;
+            setTimeout(function() { swipeHandled = false; }, 60);
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', function() {
+            swipeHandled = false;
+        }, { passive: true });
     </script>
 </body>
 </html>

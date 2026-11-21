@@ -109,6 +109,20 @@
         border: 1px solid var(--border); border-radius: 999px;
         padding: 3px 10px; letter-spacing: .08em;
     }
+    .tag-touch {
+        font-size: 11px; font-weight: 700; letter-spacing: .04em;
+        color: #052e1c;
+        background: linear-gradient(135deg, #34d399, #10b981);
+        border-radius: 999px;
+        padding: 3px 10px;
+        white-space: nowrap;
+    }
+    .tag-touch.keys-only {
+        color: var(--text-dim);
+        background: none;
+        border: 1px solid var(--border);
+        font-weight: 400;
+    }
 
     .card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
     .card .desc { font-size: 13.5px; line-height: 1.65; color: var(--text-dim); flex: 1; }
@@ -194,15 +208,15 @@
     <div class="grid">
 
         <a class="card c-snake" href="Win Trae Demo/贪吃蛇snake.html">
-            <div class="card-top"><span class="badge">蛇</span><span class="tag">经典</span></div>
+            <div class="card-top"><span class="badge">蛇</span><span class="tag">经典</span><span class="tag-touch">📱 触屏可玩 · 滑动转向</span></div>
             <h3>经典贪吃蛇</h3>
             <p class="desc">控制小蛇吃掉食物不断变长，撞到墙壁或自己的身体即结束，看你能拿多少分。</p>
-            <div class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 转向 · 点击「开始游戏」</div>
+            <div class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 转向 · 触屏在画布上滑动转向</div>
             <span class="play">开始游戏 <span class="arrow">→</span></span>
         </a>
 
         <a class="card c-jump" href="Win Trae Demo/jump_game.html">
-            <div class="card-top"><span class="badge">跳</span><span class="tag">休闲</span></div>
+            <div class="card-top"><span class="badge">跳</span><span class="tag">休闲</span><span class="tag-touch">📱 触屏可玩 · 按住蓄力</span></div>
             <h3>跳一跳</h3>
             <p class="desc">按住蓄力、松开起跳，从一个方块跳上下一个方块，蓄力越久跳得越远，落点越准分越高。</p>
             <div class="keys"><kbd>鼠标按住 / 触屏按住</kbd> 蓄力，松开起跳</div>
@@ -210,7 +224,7 @@
         </a>
 
         <a class="card c-match" href="Win Trae Demo/开心消消乐.html">
-            <div class="card-top"><span class="badge">消</span><span class="tag">三消</span></div>
+            <div class="card-top"><span class="badge">消</span><span class="tag">三消</span><span class="tag-touch">📱 触屏可玩 · 点击交换</span></div>
             <h3>消除类游戏 - 经典三消</h3>
             <p class="desc">交换相邻的两个方块，凑成三连即可消除得分，在限定步数内冲上目标分数。</p>
             <div class="keys"><kbd>鼠标点击</kbd> 选中两个相邻方块交换</div>
@@ -218,7 +232,7 @@
         </a>
 
         <a class="card c-craft" href="Win Trae Demo/crafting_game.html">
-            <div class="card-top"><span class="badge">合</span><span class="tag">合成</span></div>
+            <div class="card-top"><span class="badge">合</span><span class="tag">合成</span><span class="tag-touch">📱 触屏可玩 · 拖拽入槽</span></div>
             <h3>元素合成游戏</h3>
             <p class="desc">把物品栏中的元素拖入合成槽，点击「合成」尝试产出新元素，集齐图鉴、解锁成就。</p>
             <div class="keys"><kbd>拖拽</kbd> 放入合成槽 · <kbd>点击</kbd> 「合成」按钮</div>
@@ -226,7 +240,7 @@
         </a>
 
         <a class="card c-craft2" href="Win Trae Demo/crafting_game_v2.html">
-            <div class="card-top"><span class="badge">融</span><span class="tag">合成</span></div>
+            <div class="card-top"><span class="badge">融</span><span class="tag">合成</span><span class="tag-touch">📱 触屏可玩 · 点选/拖动</span></div>
             <h3>合成大师 - 七七四十九平台</h3>
             <p class="desc">点击四个基础生成器产出原料，把两个同等级物品拖到相邻平台自动合成更高级物品，向 49 级图鉴进发。</p>
             <div class="keys"><kbd>点击</kbd> 生成器产出 · <kbd>拖拽</kbd> 上平台合成</div>
@@ -234,7 +248,7 @@
         </a>
 
         <a class="card c-fps" href="Win Trae Demo/fps_game.html">
-            <div class="card-top"><span class="badge">枪</span><span class="tag">3D 射击</span></div>
+            <div class="card-top"><span class="badge">枪</span><span class="tag">3D 射击</span><span class="tag-touch">📱 触屏可玩 · 虚拟摇杆</span></div>
             <h3>Counter-Strike: Global Offensive Clone</h3>
             <p class="desc">3D 第一人称射击，含竞技匹配 / 死亡竞赛 / 拆弹模式，地图 Dust 2、Inferno、Mirage，武器从 Glock-18 到 AWP。界面为英文。</p>
             <div class="keys"><kbd>W A S D</kbd> 移动 · <kbd>鼠标</kbd> 瞄准 / 开火 · <kbd>Shift</kbd> 疾跑 · <kbd>Ctrl</kbd> 蹲下 · <kbd>空格</kbd> 跳 · <kbd>R</kbd> 换弹</div>
@@ -242,7 +256,7 @@
         </a>
 
         <a class="card c-sanguo" href="Win Trae Demo/三国杀.html">
-            <div class="card-top"><span class="badge">杀</span><span class="tag">卡牌</span></div>
+            <div class="card-top"><span class="badge">杀</span><span class="tag">卡牌</span><span class="tag-touch">📱 触屏可玩 · 点击出牌</span></div>
             <h3>三国杀 - 个人版</h3>
             <p class="desc">与电脑对手的回合制卡牌对决：双方各 4 点体力，打出杀、闪、桃、万箭齐发等卡牌击败对方。</p>
             <div class="keys"><kbd>点击手牌</kbd> 出牌 · <kbd>按钮</kbd> 摸牌 / 开始游戏</div>

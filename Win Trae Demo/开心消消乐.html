@@ -471,9 +471,11 @@
             } else {
                 // 选择第二个 tile，检查是否相邻
                 if (isAdjacent(selectedTile, { row, col })) {
+                    // 先保存第一个方块(下方 setTimeout 执行时 selectedTile 已被置空)
+                    const firstTile = selectedTile;
                     // 交换 tiles
                     swapTiles(selectedTile, { row, col });
-                    
+
                     // 检查是否形成匹配
                     const matches = findMatches();
                     if (matches.length > 0) {
@@ -482,7 +484,7 @@
                     } else {
                         // 无匹配，交换回来
                         setTimeout(() => {
-                            swapTiles({ row, col }, selectedTile);
+                            swapTiles({ row, col }, firstTile);
                             drawBoard();
                         }, 300);
                     }

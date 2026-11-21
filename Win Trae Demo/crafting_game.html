@@ -101,6 +101,22 @@
             cursor: grab;
             transition: all 0.3s ease;
             position: relative;
+            /* 触屏拖拽:禁止触摸滚动/长按选中干扰(对鼠标无影响,桌面仍走原生 drag) */
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* 触屏拖拽时的跟随幽灵元素 */
+        .drag-ghost {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            margin: 0;
+            transform: translate(-50%, -50%) scale(1.15);
+            opacity: 0.9;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.35);
         }
         
         .item:hover {
@@ -748,12 +764,15 @@
                 itemElement.innerHTML = `${item.icon}<div class="item-name">${item.name}</div>`;
                 itemElement.draggable = true;
                 itemElement.dataset.itemId = itemId;
-                
+
                 // 添加拖拽事件
                 itemElement.addEventListener('dragstart', function(e) {
                     e.dataTransfer.setData('text/plain', itemId);
                 });
-                
+
+                // 触屏拖拽(仅 touch/pen 生效,桌面鼠标仍走原生 drag)
+                attachTouchDrag(itemElement, itemId, null);
+
                 slot.appendChild(itemElement);
                 elements.inventoryGrid.appendChild(slot);
             });
@@ -775,14 +794,17 @@
                     itemElement.innerHTML = `${item.icon}<div class="item-name">${item.name}</div>`;
                     itemElement.draggable = true;
                     itemElement.dataset.itemId = itemId;
-                    
+
                     // 添加拖拽事件
                     itemElement.addEventListener('dragstart', function(e) {
                         e.dataTransfer.setData('text/plain', itemId);
                         delete gameData.gameState.craftingSlots[slotId];
                         updateCraftingSlots();
                     });
-                    
+
+                    // 触屏拖拽(从合成槽拖出;落下时才移出原槽,未落槽则弹回)
+                    attachTouchDrag(itemElement, itemId, slotId);
+
                     slot.appendChild(itemElement);
                 }
             });
@@ -1085,6 +1107,89 @@
             return "#" + "00000".substring(0, 6 - c.length) + c;
         }
         
+        // ===== 触屏拖拽(Pointer 事件,仅对 touch/pen 生效) =====
+        // 桌面鼠标仍走原生 HTML5 drag 事件,行为零改动;触屏上元素跟随手指移动,松手落槽。
+        let touchDragState = null;
+
+        function createDragGhost(itemElement, x, y) {
+            const ghost = itemElement.cloneNode(true);
+            ghost.classList.add('drag-ghost');
+            ghost.style.left = x + 'px';
+            ghost.style.top = y + 'px';
+            document.body.appendChild(ghost);
+            return ghost;
+        }
+
+        // 命中的合成槽(储物袋不算槽位)
+        function craftSlotAt(x, y) {
+            const el = document.elementFromPoint(x, y);
+            const slot = el ? el.closest('.crafting-slot') : null;
+            return (slot && slot.id !== 'storageBag') ? slot : null;
+        }
+
+        function clearSlotHighlight() {
+            document.querySelectorAll('.crafting-slot.active').forEach(function(s) {
+                s.classList.remove('active');
+            });
+        }
+
+        function highlightSlotAt(x, y) {
+            const slot = craftSlotAt(x, y);
+            if (touchDragState && slot === touchDragState.lastHighlight) return;
+            clearSlotHighlight();
+            if (slot) slot.classList.add('active');
+            if (touchDragState) touchDragState.lastHighlight = slot;
+        }
+
+        function attachTouchDrag(itemElement, itemId, originSlotId) {
+            itemElement.addEventListener('pointerdown', function(e) {
+                if (e.pointerType === 'mouse') return; // 桌面鼠标:原生 drag 不变
+                if (touchDragState) return;
+                e.preventDefault();
+                touchDragState = {
+                    itemId: itemId,
+                    originSlotId: originSlotId,
+                    pointerId: e.pointerId,
+                    ghost: createDragGhost(itemElement, e.clientX, e.clientY),
+                    lastHighlight: null
+                };
+                try { itemElement.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+            });
+
+            itemElement.addEventListener('pointermove', function(e) {
+                if (!touchDragState || touchDragState.pointerId !== e.pointerId) return;
+                touchDragState.ghost.style.left = e.clientX + 'px';
+                touchDragState.ghost.style.top = e.clientY + 'px';
+                highlightSlotAt(e.clientX, e.clientY);
+            });
+
+            const finishDrag = function(e) {
+                if (!touchDragState || touchDragState.pointerId !== e.pointerId) return;
+                const state = touchDragState;
+                touchDragState = null;
+                state.ghost.remove();
+                clearSlotHighlight();
+
+                const slot = craftSlotAt(e.clientX, e.clientY);
+                if (slot) {
+                    const slotId = slot.dataset.slot;
+                    if (state.originSlotId !== null && state.originSlotId === slotId) return; // 原地放下
+                    // 从原槽移出(如有),落入目标槽
+                    if (state.originSlotId !== null) {
+                        delete gameData.gameState.craftingSlots[state.originSlotId];
+                    }
+                    gameData.gameState.craftingSlots[slotId] = state.itemId;
+                    updateCraftingSlots();
+                } else if (state.originSlotId !== null) {
+                    // 未落到有效槽位:弹回原槽
+                    updateCraftingSlots();
+                }
+            };
+
+            itemElement.addEventListener('pointerup', finishDrag);
+            itemElement.addEventListener('pointercancel', finishDrag);
+        }
+
         // 初始化游戏
         initGame();
         

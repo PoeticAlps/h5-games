@@ -240,6 +240,22 @@
             transition: all 0.3s ease;
             position: relative;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            /* 触屏拖拽:禁止触摸滚动/长按选中干扰(对鼠标无影响,桌面仍走原生 drag) */
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* 触屏拖拽时的跟随幽灵元素 */
+        .drag-ghost {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            margin: 0;
+            transform: translate(-50%, -50%) scale(1.15);
+            opacity: 0.9;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.35);
         }
         
         .item:hover {
@@ -1356,6 +1372,9 @@
                         updateCraftingGrid();
                     });
                     
+                    // 触屏拖拽(仅 touch/pen 生效;桌面鼠标仍走原生 drag + 点击选择)
+                    attachTouchDragV2(itemElement, itemId, index);
+
                     // 添加点击事件（用于合成、删除和查看详情）
                     itemElement.addEventListener('click', function() {
                         const currentTime = Date.now();
@@ -1659,6 +1678,123 @@
             return "#" + "00000".substring(0, 6 - c.length) + c;
         }
         
+        // ===== 触屏拖拽(Pointer 事件,仅对 touch/pen 生效) =====
+        // 桌面鼠标仍走原生 HTML5 drag 与点击选择逻辑,行为零改动。
+        // 触屏:按住物品跟随手指移动,松手落槽 —— 空槽=移动,同种物品=合成,异种物品=弹回。
+        let v2DragState = null;
+        let v2SuppressClick = false;
+        const V2_DRAG_MOVE_THRESHOLD = 8;
+
+        function v2CreateDragGhost(itemElement, x, y) {
+            const ghost = itemElement.cloneNode(true);
+            ghost.classList.add('drag-ghost');
+            ghost.style.left = x + 'px';
+            ghost.style.top = y + 'px';
+            document.body.appendChild(ghost);
+            return ghost;
+        }
+
+        function v2SlotAt(x, y) {
+            const el = document.elementFromPoint(x, y);
+            const slot = el ? el.closest('.crafting-slot') : null;
+            if (!slot) return null;
+            const slotId = parseInt(slot.dataset.slot, 10);
+            return (slotId >= 4) ? slot : null; // 前4个是生成器,不可放置
+        }
+
+        function v2ClearHighlight() {
+            document.querySelectorAll('.crafting-slot.active').forEach(function(s) {
+                s.classList.remove('active');
+            });
+        }
+
+        function v2HighlightAt(x, y) {
+            const slot = v2SlotAt(x, y);
+            if (v2DragState && slot === v2DragState.lastHighlight) return;
+            v2ClearHighlight();
+            if (slot) slot.classList.add('active');
+            if (v2DragState) v2DragState.lastHighlight = slot;
+        }
+
+        // 拖拽后抑制紧随而来的 click,避免误触"单击选择/双击删除"逻辑
+        document.addEventListener('click', function(e) {
+            if (v2SuppressClick) {
+                e.stopPropagation();
+                e.preventDefault();
+                v2SuppressClick = false;
+            }
+        }, true);
+
+        function attachTouchDragV2(itemElement, itemId, originSlotId) {
+            itemElement.addEventListener('pointerdown', function(e) {
+                if (e.pointerType === 'mouse') return; // 桌面鼠标:原生 drag 不变
+                if (v2DragState) return;
+                e.preventDefault();
+                v2DragState = {
+                    itemId: itemId,
+                    originSlotId: originSlotId,
+                    pointerId: e.pointerId,
+                    ghost: v2CreateDragGhost(itemElement, e.clientX, e.clientY),
+                    lastHighlight: null,
+                    moved: false,
+                    startX: e.clientX,
+                    startY: e.clientY
+                };
+                try { itemElement.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+            });
+
+            itemElement.addEventListener('pointermove', function(e) {
+                if (!v2DragState || v2DragState.pointerId !== e.pointerId) return;
+                if (!v2DragState.moved &&
+                    Math.hypot(e.clientX - v2DragState.startX, e.clientY - v2DragState.startY) > V2_DRAG_MOVE_THRESHOLD) {
+                    v2DragState.moved = true;
+                }
+                v2DragState.ghost.style.left = e.clientX + 'px';
+                v2DragState.ghost.style.top = e.clientY + 'px';
+                v2HighlightAt(e.clientX, e.clientY);
+            });
+
+            const finishDrag = function(e) {
+                if (!v2DragState || v2DragState.pointerId !== e.pointerId) return;
+                const state = v2DragState;
+                v2DragState = null;
+                state.ghost.remove();
+                v2ClearHighlight();
+
+                if (!state.moved) return; // 视为点击,交给原有 click 逻辑(选择/合成/删除)
+                v2SuppressClick = true;
+                // 兜底:若浏览器在拖拽后并未派发 click,也要及时解除抑制,避免误吞下一次点击
+                setTimeout(function() { v2SuppressClick = false; }, 0);
+
+                const slot = v2SlotAt(e.clientX, e.clientY);
+                if (!slot || parseInt(slot.dataset.slot, 10) === state.originSlotId) {
+                    updateCraftingGrid(); // 弹回原槽
+                    return;
+                }
+
+                const targetSlotId = parseInt(slot.dataset.slot, 10);
+                const targetItemId = gameData.gameState.craftingSlots[targetSlotId];
+
+                if (!targetItemId) {
+                    // 移动到空槽
+                    delete gameData.gameState.craftingSlots[state.originSlotId];
+                    gameData.gameState.craftingSlots[targetSlotId] = state.itemId;
+                    updateCraftingGrid();
+                    saveGame();
+                    checkAdjacentSlots(targetSlotId, state.itemId);
+                } else if (targetItemId === state.itemId) {
+                    // 拖到同种物品上:合成
+                    tryMergeItems(targetSlotId, state.itemId, state.originSlotId);
+                } else {
+                    // 目标槽是其他物品:弹回
+                    updateCraftingGrid();
+                }
+            };
+
+            itemElement.addEventListener('pointerup', finishDrag);
+            itemElement.addEventListener('pointercancel', finishDrag);
+        }
+
         // 初始化游戏
         initGame();
     </script>
